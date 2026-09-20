@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOCAB BATTLE | Team Quiz Arena · 2–4 teams · English vocabulary</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .gradient-bg { background: linear-gradient(135deg, #090d16 0%, #111827 50%, #14532d 100%); }
+
+  /* ---------- animated background blobs ---------- */
+  .blob { position: fixed; border-radius: 9999px; filter: blur(90px); opacity: .25; pointer-events: none; z-index: 0; }
+  .blob-1 { width: 520px; height: 520px; background: #10b981; top: -160px; left: -140px; animation: drift1 18s ease-in-out infinite; }
+  .blob-2 { width: 460px; height: 460px; background: #38bdf8; bottom: -180px; right: -120px; animation: drift2 22s ease-in-out infinite; }
+  .blob-3 { width: 380px; height: 380px; background: #d946ef; top: 40%; right: 25%; opacity: .14; animation: drift3 26s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(90px,70px) scale(1.15)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-80px,-60px) scale(1.2)} }
+  @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(60px,-90px) scale(.9)} }
+
+  /* ---------- screens ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: screenIn .45s cubic-bezier(.22,1,.36,1); }
+  @keyframes screenIn { from { opacity:0; transform: translateY(24px) scale(.985); } to { opacity:1; transform:none; } }
+
+  /* ---------- generic animations ---------- */
+  @keyframes popIn { 0%{opacity:0; transform:scale(.8) translateY(18px)} 60%{transform:scale(1.04)} 100%{opacity:1; transform:none} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-14px)} 30%{transform:translateX(12px)} 45%{transform:translateX(-9px)} 60%{transform:translateX(7px)} 80%{transform:translateX(-4px)} }
+  @keyframes floaty { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-14px) rotate(2deg)} }
+  @keyframes pulseGlow { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.45)} 70%{box-shadow:0 0 0 26px rgba(16,185,129,0)} }
+  @keyframes floatUpFade { 0%{opacity:0; transform:translate(-50%,10px) scale(.7)} 25%{opacity:1; transform:translate(-50%,-10px) scale(1.15)} 100%{opacity:0; transform:translate(-50%,-120px) scale(1)} }
+  @keyframes riseUp { from{ height:0; opacity:0 } to{ opacity:1 } }
+  @keyframes slideBar { from { width:0 } }
+  @keyframes tickPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+  @keyframes bannerSweep { 0%{transform:translateX(-120%) skewX(-12deg)} 100%{transform:translateX(220%) skewX(-12deg)} }
+  @keyframes crownBounce { 0%,100%{transform:translateY(0) rotate(-6deg)} 50%{transform:translateY(-12px) rotate(6deg)} }
+
+  .pop-in { animation: popIn .45s cubic-bezier(.22,1,.36,1) both; }
+  .floaty { animation: floaty 3.2s ease-in-out infinite; }
+  .shake { animation: shake .55s ease; }
+
+  /* ---------- answer options ---------- */
+  .opt {
+    position: relative; overflow: hidden; text-align: left;
+    background: #0b1220; border: 2px solid #1e293b; color: #e2e8f0;
+    border-radius: 22px; padding: 18px 20px; font-weight: 800;
+    transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+  }
+  .opt:not(:disabled):hover { transform: translateY(-4px) scale(1.015); border-color: var(--team, #10b981); background: #0f172a; box-shadow: 0 14px 30px rgba(0,0,0,.45); }
+  .opt:disabled { cursor: default; }
+  .opt .key {
+    display:inline-flex; align-items:center; justify-content:center; flex: none;
+    width: 46px; height: 46px; border-radius: 14px; background:#1e293b; color:#94a3b8;
+    font-weight:900; font-size: 20px; transition: all .15s ease;
+  }
+  .opt:not(:disabled):hover .key { background: var(--team, #10b981); color:#052e16; }
+  .opt-ok { border-color:#10b981 !important; background: rgba(6,78,59,.7) !important; color:#a7f3d0 !important; box-shadow: 0 0 34px rgba(16,185,129,.35); }
+  .opt-ok .key { background:#10b981 !important; color:#052e16 !important; }
+  .opt-ko { border-color:#f43f5e !important; background: rgba(76,5,25,.65) !important; color:#fda4af !important; }
+  .opt-ko .key { background:#f43f5e !important; color:#4c0519 !important; }
+  .opt-dim { opacity:.38; }
+
+  /* ---------- timer ring ---------- */
+  .ring-track { stroke: #1e293b; }
+  .ring-bar { transition: stroke .3s ease; transform: rotate(-90deg); transform-origin: 50% 50%; }
+  .timer-danger { animation: tickPulse .5s ease-in-out infinite; }
+
+  /* ---------- chips & cards ---------- */
+  .chip { border:2px solid #1e293b; background:#0b1220; color:#94a3b8; border-radius:9999px; padding:8px 16px; font-weight:800; font-size:14px; transition: all .15s ease; }
+  .chip:hover { border-color:#334155; color:#e2e8f0; transform: translateY(-2px); }
+  .chip.on { border-color:#10b981; background: rgba(16,185,129,.15); color:#6ee7b7; }
+  .pick { border:2px solid #1e293b; background:#0b1220; border-radius:20px; transition: all .15s ease; }
+  .pick:hover { transform: translateY(-3px); border-color:#334155; }
+  .pick.on { border-color:#10b981; background: rgba(16,185,129,.12); box-shadow: 0 0 26px rgba(16,185,129,.22); }
+
+  input[type=range] { -webkit-appearance:none; appearance:none; height:14px; border-radius:9999px; background:#1e293b; outline:none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:34px; height:34px; border-radius:9999px; background:#10b981; border:4px solid #052e16; cursor:pointer; box-shadow:0 4px 14px rgba(16,185,129,.55); }
+  input[type=range]::-moz-range-thumb { width:34px; height:34px; border-radius:9999px; background:#10b981; border:4px solid #052e16; cursor:pointer; }
+
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:9999; }
+  .float-points { position:fixed; left:50%; top:45%; z-index:9998; font-weight:900; font-size:72px; pointer-events:none; animation: floatUpFade 1.5s ease-out forwards; text-shadow:0 6px 24px rgba(0,0,0,.6); }
+
+  .podium-col { animation: riseUp .9s cubic-bezier(.22,1,.36,1) both; }
+  .scorebar > span { display:block; height:100%; border-radius:9999px; animation: slideBar 1s cubic-bezier(.22,1,.36,1) both; }
+
+  .sweep { position:absolute; inset:0; overflow:hidden; border-radius:inherit; pointer-events:none; }
+  .sweep::after { content:""; position:absolute; top:0; bottom:0; width:60%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent); animation: bannerSweep 2.6s linear infinite; }
+
+
+  /* ---------- challenge (captain) styling ---------- */
+  @keyframes goldPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(251,191,36,.5) } 70%{ box-shadow:0 0 0 24px rgba(251,191,36,0) } }
+  .challenge-glow { animation: goldPulse 1.8s infinite; }
+
+  /* ---------- letter tiles (unscramble) ---------- */
+  .tile { width: 60px; height: 68px; border-radius: 16px; background:#0b1220; border:2px solid #334155; color:#fff;
+          font-weight:900; font-size:30px; text-transform:uppercase; transition: all .12s ease; }
+  .tile:not(:disabled):hover { transform: translateY(-5px) scale(1.05); border-color: var(--team,#10b981); background:#0f172a; }
+  .tile.used { opacity:.25; pointer-events:none; }
+  .slot { width: 56px; height: 66px; border-radius: 14px; border:2px dashed #334155; background:rgba(2,6,23,.6);
+          display:flex; align-items:center; justify-content:center; font-weight:900; font-size:30px; text-transform:uppercase; color:#fff; }
+  .slot.filled { border-style: solid; border-color: var(--team,#10b981); background:#0b1220; }
+  @media (max-width: 640px){ .tile{width:44px;height:52px;font-size:22px} .slot{width:40px;height:50px;font-size:22px} }
+
+  /* ---------- on-screen keyboard ---------- */
+  .kb { width: 52px; height: 52px; border-radius: 13px; background:#0f172a; border:2px solid #1e293b; color:#e2e8f0;
+        font-weight:900; font-size:19px; text-transform:uppercase; transition: all .1s ease; }
+  .kb:hover { background:#1e293b; border-color: var(--team,#10b981); transform: translateY(-3px); }
+  @media (max-width: 640px){ .kb{width:34px;height:40px;font-size:14px;border-radius:9px} }
+
+  .gap-word { letter-spacing:.35em; font-weight:900; }
+  .modal-back { position:fixed; inset:0; background:rgba(2,6,23,.85); backdrop-filter:blur(6px); z-index:9000; display:none; }
+  .modal-back.open { display:flex; }
+  @media print { .no-print { display:none !important; } body { background:#fff !important; } .print-area { color:#000 !important; } }
+
+  .team-active { animation: pulseGlow 2s infinite; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:9999px; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen gradient-bg flex flex-col selection:bg-emerald-500 selection:text-white">
+
+<div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div>
+<canvas id="confetti"></canvas>
+
+<!-- ============================ NAVBAR ============================ -->
+<header class="relative z-40 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 py-3 md:py-4">
+  <div class="max-w-7xl mx-auto px-4 md:px-8 flex justify-between items-center gap-3">
+    <div class="flex items-center space-x-3 md:space-x-4 cursor-pointer" onclick="goHome()">
+      <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-emerald-600 flex items-center justify-center text-2xl md:text-3xl shadow-lg shadow-emerald-500/40">
+        ⚔️
+      </div>
+      <div>
+        <h1 class="font-black text-xl md:text-3xl text-white tracking-wider leading-none">VOCAB<span class="text-emerald-400">BATTLE</span></h1>
+        <p class="text-[11px] md:text-sm font-semibold text-slate-400">Team quiz arena · 2–4 teams · English vocabulary</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btnMusic" onclick="toggleMusic()" title="Background music" class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-lg transition">
+        <i class="fa-solid fa-music"></i>
+      </button>
+      <button id="btnSfx" onclick="toggleSfx()" title="Sound effects" class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-lg transition">
+        <i class="fa-solid fa-volume-high"></i>
+      </button>
+      <button onclick="toggleFullScreen()" title="Full screen" class="bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 px-4 md:px-5 h-12 md:h-14 rounded-2xl font-black text-sm md:text-base transition flex items-center gap-2 shadow-lg shadow-emerald-600/30">
+        <i class="fa-solid fa-expand text-lg"></i> <span class="hidden md:inline">Full Screen</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="relative z-10 flex-grow max-w-7xl w-full mx-auto p-4 md:p-8">
+
+<!-- ============================ SETUP ============================ -->
+<section id="screenSetup" class="screen active space-y-6">
+
+  <div class="text-center space-y-3 py-2">
+    <span class="inline-block px-4 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-full text-xs md:text-sm font-extrabold uppercase tracking-widest border border-emerald-500/30">Classroom battle mode · no phones needed</span>
+    <h2 class="text-4xl md:text-6xl font-black text-white leading-tight">Ready to <span class="text-emerald-400">clash</span>? ⚔️</h2>
+    <p class="text-slate-300 text-base md:text-xl max-w-3xl mx-auto">One player from each team comes to the board and answers a question. Teams take turns, round after round. The faster the answer, the more points (3 · 2 · 1) — and only three teams make it to the podium.</p>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+
+    <!-- TEAMS -->
+    <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <span class="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl"><i class="fa-solid fa-users"></i></span>
+        <div>
+          <h3 class="text-xl md:text-2xl font-black text-white">1 · How many teams?</h3>
+          <p class="text-sm text-slate-400">Each team answers one question per round.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3" id="teamCountPicker"></div>
+      <div class="space-y-3" id="teamNameList"></div>
+    </div>
+
+    <!-- ROUNDS + DIFFICULTY -->
+    <div class="space-y-6">
+      <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl">
+        <div class="flex items-center gap-3">
+          <span class="w-11 h-11 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 text-xl"><i class="fa-solid fa-layer-group"></i></span>
+          <div>
+            <h3 class="text-xl md:text-2xl font-black text-white">2 · How many rounds?</h3>
+            <p class="text-sm text-slate-400">A round = one question for every team.</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-5">
+          <input id="roundSlider" type="range" min="5" max="15" value="8" step="1" class="flex-grow" oninput="setRounds(this.value)">
+          <div class="text-center bg-slate-950 border-2 border-slate-800 rounded-2xl px-5 py-2 min-w-[92px]">
+            <div id="roundValue" class="text-4xl font-black text-emerald-400 leading-none">8</div>
+            <div class="text-[10px] font-black uppercase tracking-widest text-slate-500">rounds</div>
+          </div>
+        </div>
+        <p class="text-sm md:text-base text-slate-300 bg-slate-950/70 border border-slate-800 rounded-2xl px-4 py-3">
+          <i class="fa-solid fa-circle-info text-sky-400 mr-1"></i>
+          Total questions this game: <strong id="totalQCount" class="text-white">16</strong> · never repeated, reshuffled every single game.
+        </p>
+      </div>
+
+      <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl">
+        <div class="flex items-center gap-3">
+          <span class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl"><i class="fa-solid fa-gauge-high"></i></span>
+          <div>
+            <h3 class="text-xl md:text-2xl font-black text-white">3 · Speed</h3>
+            <p class="text-sm text-slate-400">Thinking time per question.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3" id="difficultyPicker"></div>
+        <p class="text-sm md:text-base text-slate-300 bg-slate-950/70 border border-slate-800 rounded-2xl px-4 py-3 leading-snug">
+          <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> <strong class="text-white">The faster you answer, the more you score:</strong>
+          first third of the time = <strong class="text-emerald-400">3 points</strong>, middle third = <strong class="text-amber-400">2</strong>, last third = <strong class="text-rose-400">1</strong>.
+          ⭐ Challenge questions are worth double.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPICS -->
+  <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-8 space-y-5 shadow-2xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <span class="w-11 h-11 rounded-2xl bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-400 text-xl"><i class="fa-solid fa-book-open"></i></span>
+        <div>
+          <h3 class="text-xl md:text-2xl font-black text-white">4 · Vocabulary topics</h3>
+          <p class="text-sm text-slate-400">Tap to switch topics on and off.</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="selectAllTopics(true)" class="chip"><i class="fa-solid fa-check-double mr-1"></i> All</button>
+        <button onclick="selectAllTopics(false)" class="chip"><i class="fa-solid fa-xmark mr-1"></i> None</button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2" id="topicPicker"></div>
+    <p id="topicsOffNote" class="hidden text-sm md:text-base font-bold text-amber-300 bg-amber-950/30 border border-amber-500/40 rounded-2xl px-4 py-3">
+      🔒 The book topics are switched off — this game uses <strong>only your own vocabulary list</strong>.
+    </p>
+
+    <!-- CUSTOM WORDS -->
+    <div class="border-t border-slate-800 pt-5 space-y-3">
+      <button onclick="toggleCustomBox()" class="w-full flex items-center justify-between bg-slate-950/70 border-2 border-slate-800 hover:border-slate-700 rounded-2xl px-5 py-4 transition">
+        <span class="font-black text-white text-base md:text-lg"><i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-2"></i> Add your own vocabulary list</span>
+        <i id="customChevron" class="fa-solid fa-chevron-down text-slate-400"></i>
+      </button>
+      <div id="customBox" class="hidden space-y-3">
+        <div class="grid grid-cols-2 gap-3" id="customModePicker"></div>
+        <div class="grid md:grid-cols-3 gap-3 text-sm md:text-base">
+          <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+            <p class="font-black text-emerald-400 mb-1">1 · Word + meaning</p>
+            <code class="text-slate-300 text-xs md:text-sm">stubborn = never changes their mind</code>
+            <p class="text-slate-500 text-xs mt-2">Becomes a multiple-choice, gap-fill or unscramble question.</p>
+          </div>
+          <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+            <p class="font-black text-sky-400 mb-1">2 · Your own sentence</p>
+            <code class="text-slate-300 text-xs md:text-sm">She ______ her ankle skiing. = sprained</code>
+            <p class="text-slate-500 text-xs mt-2">Your sentence appears on the board with the gap.</p>
+          </div>
+          <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-4">
+            <p class="font-black text-amber-400 mb-1">3 · Just the word</p>
+            <code class="text-slate-300 text-xs md:text-sm">goggles</code>
+            <p class="text-slate-500 text-xs mt-2">Comes up as missing vowels or listen &amp; write — no meaning needed. If it's a unit word, the game reuses its own clue.</p>
+          </div>
+        </div>
+        <p class="text-sm md:text-base text-slate-300">One item per line. Start a line with <code class="bg-slate-950 px-2 py-0.5 rounded text-amber-300 font-black">*</code> to make it a <strong class="text-amber-300">⭐ B2 Captain's Challenge</strong> word. Paste as many as you like — 4 or more gives the game enough options for multiple choice.</p>
+        <textarea id="customInput" rows="7" spellcheck="false" oninput="parseCustomWords()"
+          placeholder="stubborn = never changes their mind&#10;to commute = to travel to work or school every day&#10;She ______ her ankle skiing. = sprained&#10;intestines&#10;* meticulous = careful about every small detail"
+          class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-5 py-4 text-base md:text-lg text-white focus:outline-none focus:border-emerald-500 transition font-mono"></textarea>
+        <p id="customStatus" class="text-sm font-bold text-slate-400"></p>
+      </div>
+    </div>
+
+    <div id="poolStatus" class="rounded-2xl px-5 py-4 text-base md:text-lg font-bold border-2"></div>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+
+    <!-- CAPTAIN'S CHALLENGE -->
+    <div class="bg-slate-900/90 border-2 border-amber-500/40 rounded-3xl p-6 md:p-8 space-y-4 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <span class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl"><i class="fa-solid fa-star"></i></span>
+        <div>
+          <h3 class="text-xl md:text-2xl font-black text-white">5 · Captain's Challenge ⭐</h3>
+          <p class="text-sm text-slate-400">Extra B2 vocabulary for your strongest players.</p>
+        </div>
+      </div>
+      <p class="text-sm md:text-base text-slate-300 bg-slate-950/70 border border-slate-800 rounded-2xl px-4 py-3 leading-snug">
+        One question per round uses <strong class="text-amber-300">harder B2 words that are not in the book</strong>. The screen announces it <strong>before</strong> the player comes to the board, so each team can send their captain — and every team gets the same number of challenges.
+      </p>
+      <div class="grid grid-cols-3 gap-3" id="challengePicker"></div>
+      <p id="challengeInfo" class="text-sm font-bold text-amber-300"></p>
+    </div>
+
+    <!-- EXERCISE FORMATS -->
+    <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-8 space-y-4 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <span class="w-11 h-11 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 text-xl"><i class="fa-solid fa-shapes"></i></span>
+        <div>
+          <h3 class="text-xl md:text-2xl font-black text-white">6 · Exercise formats</h3>
+          <p class="text-sm text-slate-400">Tap to switch each format on or off.</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-3" id="formatPicker"></div>
+      <p class="text-sm text-slate-400 leading-snug"><i class="fa-solid fa-circle-info text-sky-400 mr-1"></i> Everything except multiple choice is written on the board and scores <strong class="text-slate-300">+1 extra point</strong>. An on-screen keyboard appears, so no physical keyboard is needed. <strong class="text-slate-300">Listen &amp; write</strong> reads the word out loud (the music stops so the class can hear it).</p>
+      <div id="voiceBox" class="hidden bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2">
+        <p class="text-sm font-black text-slate-300 uppercase tracking-widest"><i class="fa-solid fa-microphone-lines text-emerald-400 mr-1"></i> Reading voice</p>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <select id="voiceSelect" onchange="setVoice(this.value)"
+            class="flex-grow min-w-0 bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-emerald-500"></select>
+          <button onclick="testVoice()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 rounded-xl transition whitespace-nowrap">
+            <i class="fa-solid fa-play mr-1"></i> Hear it
+          </button>
+        </div>
+        <p class="text-xs text-slate-500 leading-snug">Pick the voice that sounds most human on this computer and try it before the lesson. Voices with “Natural”, “Neural” or “Google” in the name are the good ones; “eSpeak” or “Compact” are the tinny robots.</p>
+      </div>
+
+      <button onclick="openWordList()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-100 font-black text-base md:text-lg py-4 rounded-2xl transition flex items-center justify-center gap-3">
+        <i class="fa-solid fa-list-check text-emerald-400"></i> See / print the vocabulary list
+      </button>
+    </div>
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 shadow-2xl">
+    <p class="text-slate-400 text-sm md:text-base"><i class="fa-solid fa-keyboard mr-1 text-emerald-400"></i> On the board: click an answer, or press <kbd class="bg-slate-800 px-2 py-1 rounded font-black text-white">1</kbd>–<kbd class="bg-slate-800 px-2 py-1 rounded font-black text-white">4</kbd> · <kbd class="bg-slate-800 px-2 py-1 rounded font-black text-white">Space</kbd> to continue.</p>
+    <button id="startBtn" onclick="startGame()" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-2xl md:text-3xl px-12 py-5 rounded-2xl transition shadow-xl shadow-emerald-600/40 flex items-center justify-center gap-4">
+      START THE BATTLE <i class="fa-solid fa-play"></i>
+    </button>
+  </div>
+</section>
+
+<!-- ============================ TURN CARD ============================ -->
+<section id="screenTurn" class="screen">
+  <div class="min-h-[62vh] flex flex-col items-center justify-center text-center space-y-8 py-10">
+    <div id="turnRoundLabel" class="text-lg md:text-2xl font-black uppercase tracking-[0.3em] text-slate-400">Round 1 of 8</div>
+    <div id="turnChallengeBanner" class="hidden challenge-glow rounded-3xl border-4 border-amber-400 bg-amber-500/15 px-6 md:px-12 py-4 md:py-5">
+      <p class="text-2xl md:text-4xl font-black text-amber-300">⭐ CAPTAIN'S CHALLENGE ⭐</p>
+      <p class="text-sm md:text-xl font-bold text-amber-100/90 mt-1">Extra B2 word · double points · send your captain!</p>
+    </div>
+
+    <div id="turnCard" class="relative overflow-hidden pop-in rounded-[2.5rem] border-4 px-10 md:px-24 py-10 md:py-14 shadow-2xl">
+      <div class="sweep"></div>
+      <div id="turnEmoji" class="text-7xl md:text-9xl floaty mb-3">🐉</div>
+      <div class="text-sm md:text-lg font-black uppercase tracking-[0.3em] text-slate-300">It's your turn</div>
+      <h2 id="turnTeamName" class="text-4xl md:text-7xl font-black text-white mt-2">Green Dragons</h2>
+      <p id="turnPlayerHint" class="text-base md:text-2xl text-slate-200/90 font-bold mt-4">Send a new player to the board! 🏃</p>
+    </div>
+
+    <div class="space-y-4">
+      <div id="turnCountdown" class="text-6xl md:text-8xl font-black text-emerald-400">3</div>
+      <button onclick="beginQuestion()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-lg px-8 py-4 rounded-2xl transition">
+        Skip countdown <i class="fa-solid fa-forward ml-1"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ QUESTION ============================ -->
+<section id="screenQuestion" class="screen space-y-4 md:space-y-6">
+
+  <div id="liveScoreStrip" class="grid gap-3"></div>
+
+  <div class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-4 md:p-6 flex items-center justify-between gap-4 shadow-2xl">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span id="qChallengeBadge" class="hidden text-xs md:text-sm font-black uppercase tracking-widest text-amber-300 bg-amber-500/15 border border-amber-400/50 rounded-full px-3 py-1">⭐ Captain's Challenge · double points</span>
+        <span id="qFormatBadge" class="text-xs md:text-sm font-black uppercase tracking-widest text-sky-300 bg-sky-500/10 border border-sky-400/40 rounded-full px-3 py-1">Multiple choice</span>
+        <span id="qRoundBadge" class="text-xs md:text-sm font-black uppercase tracking-widest text-emerald-400">Round 1 · Question 1 of 2</span>
+      </div>
+      <h3 id="qTopicBadge" class="text-xl md:text-3xl font-black text-white mt-1 truncate">📱 Technology &amp; Social Media</h3>
+      <p id="qTeamTurn" class="text-sm md:text-lg font-bold text-slate-400 mt-0.5">Answering: <span class="text-white">Green Dragons</span></p>
+    </div>
+
+    <div class="relative flex-none">
+      <svg width="104" height="104" viewBox="0 0 104 104" class="block">
+        <circle class="ring-track" cx="52" cy="52" r="44" fill="none" stroke-width="11"></circle>
+        <circle id="timerRing" class="ring-bar" cx="52" cy="52" r="44" fill="none" stroke="#10b981" stroke-width="11" stroke-linecap="round" stroke-dasharray="276.4" stroke-dashoffset="0"></circle>
+      </svg>
+      <div id="timerText" class="absolute inset-0 flex items-center justify-center text-3xl md:text-4xl font-black text-emerald-400">20</div>
+      <div id="timerWorth" class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] md:text-xs font-black uppercase tracking-widest bg-slate-950 border border-slate-700 rounded-full px-2 py-0.5 text-emerald-400">3 points</div>
+    </div>
+  </div>
+
+  <div id="questionCard" class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-6 md:p-10 space-y-6 shadow-2xl">
+    <div class="flex flex-col md:flex-row md:items-center gap-5">
+      <div id="qEmoji" class="text-6xl md:text-8xl floaty flex-none text-center">📱</div>
+      <p id="qPrompt" class="text-2xl md:text-4xl font-black text-white leading-snug flex-grow">Loading question…</p>
+    </div>
+
+    <div id="optionsGrid" class="grid md:grid-cols-2 gap-3 md:gap-4"></div>
+
+    <!-- TYPED CHALLENGES: gap fill · missing vowels · listen & write -->
+    <div id="gapArea" class="hidden space-y-4">
+      <div id="gapExtra" class="hidden justify-center"></div>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <div id="gapDisplay" class="min-w-[260px] text-center bg-slate-950 border-2 border-slate-700 rounded-2xl px-6 py-4 text-3xl md:text-5xl gap-word text-white"></div>
+        <button onclick="checkGap()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-2xl px-8 py-4 rounded-2xl transition shadow-lg shadow-emerald-600/30">
+          <i class="fa-solid fa-check mr-2"></i> Check
+        </button>
+      </div>
+      <p id="gapHint" class="text-center text-base md:text-xl font-bold text-slate-400"></p>
+      <div id="keyboard" class="flex flex-col items-center gap-2"></div>
+    </div>
+
+    <!-- UNSCRAMBLE -->
+    <div id="scrambleArea" class="hidden space-y-5">
+      <div id="scrambleSlots" class="flex flex-wrap justify-center gap-2 md:gap-3"></div>
+      <div id="scrambleTiles" class="flex flex-wrap justify-center gap-2 md:gap-3"></div>
+      <div class="flex justify-center gap-3">
+        <button onclick="clearScramble()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-base md:text-lg px-6 py-3 rounded-2xl transition"><i class="fa-solid fa-eraser mr-2"></i> Clear</button>
+        <button onclick="checkScramble()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base md:text-lg px-6 py-3 rounded-2xl transition shadow-lg shadow-emerald-600/30"><i class="fa-solid fa-check mr-2"></i> Check</button>
+      </div>
+    </div>
+
+    <div id="feedbackBox" class="hidden rounded-2xl border-2 p-5 md:p-6 space-y-2"></div>
+  </div>
+
+  <div class="flex justify-between items-center gap-3">
+    <button onclick="quitGame()" class="text-sm md:text-base font-bold text-slate-500 hover:text-slate-300 transition"><i class="fa-solid fa-door-open mr-1"></i> Quit game</button>
+    <button id="nextBtn" onclick="afterQuestion()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-2xl px-10 py-5 rounded-2xl transition shadow-xl shadow-emerald-600/40">
+      Continue <i class="fa-solid fa-arrow-right ml-2"></i>
+    </button>
+  </div>
+</section>
+
+<!-- ============================ ROUND SCOREBOARD ============================ -->
+<section id="screenScores" class="screen">
+  <div class="max-w-4xl mx-auto space-y-6 py-4">
+    <div class="text-center space-y-2">
+      <span id="scoreRoundLabel" class="inline-block px-4 py-1.5 bg-emerald-500/20 text-emerald-300 rounded-full text-xs md:text-sm font-extrabold uppercase tracking-widest border border-emerald-500/30">Round 1 complete</span>
+      <h2 class="text-3xl md:text-5xl font-black text-white">Scoreboard 🏆</h2>
+      <p id="scoreSubtitle" class="text-slate-300 text-base md:text-xl">7 rounds to go — anything can still happen!</p>
+    </div>
+
+    <div id="scoreList" class="space-y-4"></div>
+
+    <div class="flex justify-center">
+      <button id="nextRoundBtn" onclick="nextRound()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-2xl md:text-3xl px-12 py-5 rounded-2xl transition shadow-xl shadow-emerald-600/40">
+        Next round <i class="fa-solid fa-arrow-right ml-2"></i>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PODIUM ============================ -->
+<section id="screenPodium" class="screen">
+  <div class="max-w-5xl mx-auto space-y-8 py-4">
+    <div class="text-center space-y-2">
+      <span class="inline-block px-4 py-1.5 bg-amber-500/20 text-amber-300 rounded-full text-xs md:text-sm font-extrabold uppercase tracking-widest border border-amber-500/30">Game over</span>
+      <h2 class="text-4xl md:text-6xl font-black text-white">The podium 🥇</h2>
+      <p id="podiumWinner" class="text-xl md:text-3xl font-black text-emerald-400"></p>
+    </div>
+
+    <div>
+      <div id="podiumStage" class="grid grid-cols-3 gap-3 md:gap-6 items-end min-h-[300px] md:min-h-[400px]"></div>
+      <div class="h-3 md:h-4 rounded-full bg-gradient-to-r from-slate-800 via-slate-600 to-slate-800 shadow-2xl"></div>
+    </div>
+
+    <div id="podiumRest" class="space-y-3"></div>
+
+    <div id="podiumStats" class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4"></div>
+
+    <div class="flex flex-col md:flex-row gap-4 justify-center pt-2">
+      <button onclick="playAgain()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-2xl px-10 py-5 rounded-2xl transition shadow-xl shadow-emerald-600/40">
+        <i class="fa-solid fa-rotate-right mr-2"></i> Rematch (same teams)
+      </button>
+      <button onclick="goHome()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-xl md:text-2xl px-10 py-5 rounded-2xl transition">
+        <i class="fa-solid fa-sliders mr-2"></i> New game setup
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WORD LIST MODAL ============================ -->
+<div id="wordListModal" class="modal-back items-start justify-center p-4 md:p-10 overflow-auto" onclick="if(event.target===this) closeWordList()">
+  <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl max-w-5xl w-full p-6 md:p-8 space-y-5 print-area">
+    <div class="flex justify-between items-start gap-4">
+      <div>
+        <h3 class="text-2xl md:text-4xl font-black text-white">Vocabulary list 📖</h3>
+        <p class="text-sm md:text-base text-slate-400">Everything in the selected topics. <strong class="text-amber-300">⭐ B2 extra</strong> words only appear in Captain's Challenge questions.</p>
+      </div>
+      <div class="flex gap-2 no-print">
+        <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black px-4 py-3 rounded-xl"><i class="fa-solid fa-print"></i></button>
+        <button onclick="closeWordList()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black px-4 py-3 rounded-xl"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div id="wordListBody" class="space-y-6 max-h-[70vh] overflow-auto pr-2"></div>
+  </div>
+</div>
+
+</main>
+
+<footer class="relative z-10 border-t border-slate-800 bg-slate-900/60 py-5 text-center text-xs md:text-sm text-slate-500">
+  VOCAB BATTLE · Classroom team quiz · Built for the interactive whiteboard — no phones, no accounts, no internet data saved.
+</footer>
+
+
+<script>
+/* If the school network blocks the CDN, Tailwind never arrives: inject a
+   minimal stylesheet so the game is still perfectly playable on the board. */
+window.addEventListener("load", () => {
+  if (window.tailwind) return;
+  const css = `
+    body{background:#0b1220;color:#e2e8f0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;margin:0}
+    main{max-width:1200px;margin:0 auto;padding:16px}
+    header{background:#0f172a;border-bottom:1px solid #1e293b;padding:12px 16px;display:flex;justify-content:center}
+    header > div{width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    h1,h2,h3,h4{color:#fff;margin:.2em 0}
+    h2{font-size:2rem} h3{font-size:1.3rem}
+    button{font-family:inherit;cursor:pointer;border-radius:16px;border:2px solid #1e293b;background:#0f172a;color:#e2e8f0;padding:12px 18px;font-weight:800;font-size:1rem}
+    button:hover{border-color:#10b981}
+    input,textarea{font-family:inherit;background:#020617;color:#fff;border:2px solid #1e293b;border-radius:14px;padding:10px 14px;font-size:1.1rem}
+    section > div, #scoreList > div, #podiumStats > div{background:rgba(15,23,42,.9);border:2px solid #1e293b;border-radius:20px;padding:16px;margin-bottom:14px}
+    .grid{display:flex;flex-wrap:wrap;gap:12px}
+    .grid > *{flex:1 1 220px}
+    #optionsGrid{display:flex;flex-direction:column;gap:12px}
+    #podiumStage{display:flex;align-items:flex-end;justify-content:center;gap:16px}
+    .hidden{display:none !important}
+    .no-print{}
+    footer{padding:16px;text-align:center;color:#64748b;font-size:.85rem}
+  `;
+  const el = document.createElement("style"); el.textContent = css; document.head.appendChild(el);
+});
+</script>
+
+<script>
+/* =====================================================================
+   VOCABULARY BANK · Introduction unit (Parts of the body · Health ·
+   Food and nutrition · Adjectives · Travel · Sport)
+     qs[]   = CORE vocabulary — the words everybody in the class must know
+     hard[] = ⭐ B2 EXTRA vocabulary — Captain's Challenge questions only
+   Each item: [ prompt, [correct, wrong, wrong, wrong], emoji, tip ]
+   The correct answer is always written first here and SHUFFLED at runtime.
+   ===================================================================== */
+const TOPICS = [
+
+{ id:"body", name:"Parts of the Body", emoji:"🫀", color:"#f43f5e", qs:[
+ ["Which part of your body connects your body with your head?", ["neck","chin","spine","shoulder"], "🧣", "He wears a scarf round his neck in winter."],
+ ["Which part connects your arm with your hand?", ["wrist","elbow","ankle","knee"], "✋", "She broke her wrist playing volleyball."],
+ ["Which part connects your foot with your leg?", ["ankle","wrist","knee","toe"], "🦶", "I twisted my ankle on the stairs."],
+ ["Which part connects the two parts of your leg?", ["knee","elbow","wrist","shoulder"], "🦵", "Footballers often have knee injuries."],
+ ["Which part connects the two parts of your arm?", ["elbow","knee","ankle","spine"], "💪", "Sneeze into your elbow, not into your hand!"],
+ ["Which one is one of your five fingers?", ["thumb","toe","rib","chin"], "👍", "The thumb is the shortest and strongest finger."],
+ ["Which part is at the top of your arm?", ["shoulder","elbow","wrist","thumb"], "🎒", "Carry the rucksack on both shoulders."],
+ ["Which part of your body do you often lie on in bed?", ["back","chin","knee","elbow"], "🛏️", "I can't sleep on my back."],
+ ["The line of bones down your back is your…", ["spine","rib","muscle","joint"], "🦴", "Sit up straight and protect your spine."],
+ ["Food is digested in your…", ["intestines","lungs","brain","heart"], "🌀", "The intestines are several metres long."],
+ ["Which organs do you use to breathe?", ["lungs","kidneys","ribs","muscles"], "🫁", "Smoking damages your lungs."],
+ ["Which organ controls your thoughts and your memory?", ["brain","heart","stomach","muscle"], "🧠", "The brain never really switches off."],
+ ["Which organ pumps blood around your body?", ["heart","lung","stomach","brain"], "❤️", "Exercise makes your heart stronger."],
+ ["After you swallow, the food goes to your…", ["stomach","lungs","spine","brain"], "🍽️", "I've got an upset stomach."],
+ ["The bones around your chest that protect your heart and lungs are your…", ["ribs","joints","muscles","nerves"], "🦴", "He broke two ribs in the accident."],
+ ["Which part of your face is just below your mouth?", ["chin","neck","shoulder","thumb"], "🙂", "He's got a small scar on his chin."],
+ ["Which part is at the end of your foot?", ["toe","thumb","finger","ankle"], "🦶", "I hit my little toe on the door."],
+ ["You use your ______ to move and lift things; exercise makes them stronger.", ["muscles","bones","ribs","organs"], "💪", "Stretch your muscles before you run."]
+], hard:[
+ ["Which word means the place where two bones meet?", ["joint","limb","organ","nerve"], "⚙️", "B2: The knee is the largest joint in the body."],
+ ["Which word means an arm or a leg?", ["limb","lobe","joint","trunk"], "🦿", "B2: Spiders have eight limbs."],
+ ["Which strong tissue connects a muscle to a bone?", ["tendon","artery","nerve","cell"], "🔗", "B2: He tore a tendon in his shoulder."],
+ ["Which word means the two holes in your nose?", ["nostrils","knuckles","eyelids","eyelashes"], "👃", "B2: Breathe in through your nostrils."],
+ ["Which word means the bones of your hand where your fingers bend?", ["knuckles","nostrils","ankles","ribs"], "✊", "B2: He hurt his knuckles boxing."],
+ ["Which word means the muscle at the back of your lower leg?", ["calf","thigh","shin","heel"], "🦵", "B2: My calves hurt after cycling."],
+ ["Which blood vessel carries blood away from the heart?", ["artery","vein","nerve","tendon"], "🩸", "B2: Arteries out, veins in."]
+]},
+
+{ id:"health", name:"Health & Illness", emoji:"🤒", color:"#10b981", qs:[
+ ["Without medicine, the infection will get ______.", ["worse","worst","better","best"], "📉", "get worse = become more serious."],
+ ["Pat's got flu. I hope he ______ soon.", ["gets better","gets worse","gets up","gets off"], "🌡️", "get better = recover from an illness."],
+ ["You should ______ or cough into your elbow.", ["sneeze","sting","swallow","sweat"], "🤧", "Atishoo! He sneezed five times."],
+ ["Grandpa has got arthritis. He's often in ______.", ["pain","paint","pan","pin"], "😖", "to be in pain = to feel pain."],
+ ["The cut isn't deep. It won't ______ for long.", ["bleed","breathe","blend","burn"], "🩸", "The wound bled for a minute."],
+ ["I've got an ______ stomach. I'm going to be sick.", ["upset","upside","unfit","uneasy"], "🤢", "An upset stomach after too much cake!"],
+ ["When Paul sees blood, he feels ______.", ["dizzy","busy","lazy","noisy"], "😵", "dizzy = the room seems to turn around you."],
+ ["When you get flu, you usually have a high ______.", ["temperature","tablet","bandage","sting"], "🌡️", "She had a temperature of 39 degrees."],
+ ["Simon must take a ______ once a day.", ["tablet","sting","bandage","bite"], "💊", "Take one tablet after lunch."],
+ ["Bright lights give me a ______.", ["headache","cold","bite","sore throat"], "🤕", "I've got a terrible headache."],
+ ["Ian can't breathe well because he's got a bad ______.", ["cold","bite","headache","temperature"], "🤧", "She caught a cold at the campsite."],
+ ["Kate used a ______ to stop the blood.", ["bandage","tablet","temperature","sting"], "🩹", "Put a bandage on that cut."],
+ ["Drink lemon and honey for a ______.", ["sore throat","headache","bandage","tablet"], "🍋", "I can't sing, I've got a sore throat."],
+ ["Tim got a bee ______ while he was hiking.", ["sting","bite","cold","cut"], "🐝", "A bee sting really hurts."],
+ ["Tom's got a spider ______ on his leg.", ["bite","sting","cold","headache"], "🕷️", "Insect bites itch for days."],
+ ["Which word means the winter illness with fever, aches and a cough?", ["flu","cut","sting","arthritis"], "🤒", "Half the class was off with flu."],
+ ["Which illness makes your joints painful, especially when you are older?", ["arthritis","asthma","allergy","infection"], "👴", "Grandpa has arthritis in his hands."],
+ ["In British English, “to be sick” means…", ["to vomit","to feel happy","to be cold","to sleep badly"], "🤮", "I feel sick — I think I'm going to be sick."]
+], hard:[
+ ["Which word means a purple mark on your skin after you hit something?", ["bruise","blister","rash","scar"], "🟣", "B2: He had bruises all over his leg."],
+ ["Which word means red spots on your skin, often from an allergy?", ["rash","bruise","cramp","sprain"], "🔴", "B2: Strawberries give me a rash."],
+ ["Which adjective describes an illness that passes easily from person to person?", ["contagious","harmless","chronic","severe"], "🦠", "B2: Chickenpox is highly contagious."],
+ ["If you twist your ankle badly, you ______ it.", ["sprain","sprint","spray","scratch"], "🤕", "B2: She sprained her ankle in the first minute."],
+ ["What does the doctor write so the chemist can give you your medicine?", ["a prescription","a description","a subscription","a reception"], "💊", "B2: Antibiotics need a prescription."],
+ ["Which word means the permanent mark left on your skin after a deep cut?", ["a scar","a stain","a spot","a patch"], "🩹", "B2: The operation left a small scar."],
+ ["If a part of your body gets bigger because of an injury, it is…", ["swollen","shrunken","frozen","hollow"], "🦶", "B2: My knee was swollen for a week."]
+]},
+
+{ id:"food", name:"Food & Nutrition", emoji:"🥗", color:"#f97316", qs:[
+ ["Foods which are high in fat have usually got a lot of ______.", ["calories","vitamins","minerals","proteins"], "🍟", "A burger has about 500 calories."],
+ ["Vegetables contain a lot of ______ and minerals.", ["vitamins","calories","fats","sugars"], "🥦", "Oranges are full of vitamin C."],
+ ["Chips are tasty but they are not very ______.", ["healthy","hungry","heavy","fresh"], "🍟", "Try to eat a healthy breakfast."],
+ ["Lentils, cheese and eggs contain both ______ and carbohydrates.", ["protein","vitamin C","calories","minerals"], "🥚", "Athletes need a lot of protein."],
+ ["Without sugar, fresh lemon juice has got a ______ taste.", ["sour","sweet","salty","spicy"], "🍋", "Lemons and vinegar are sour."],
+ ["Are ______ vegetables better for you than cooked ones?", ["raw","ripe","rare","rotten"], "🥕", "A salad is made of raw vegetables."],
+ ["Oil is used to prepare ______ vegetables.", ["fried","boiled","frozen","baked"], "🍳", "Fried food is full of fat."],
+ ["______ food is very cold and comes out of the freezer.", ["Frozen","Fried","Baked","Boiled"], "🧊", "We keep frozen peas for emergencies."],
+ ["Oranges are usually ______.", ["sweet","spicy","bitter","salty"], "🍊", "This orange is really sweet."],
+ ["People often eat ______ eggs for breakfast.", ["boiled","wholegrain","frozen","raw"], "🥚", "Boil the eggs for five minutes."],
+ ["Bread made with the complete grain of wheat is ______ bread.", ["wholegrain","boiled","frozen","fried"], "🍞", "Wholegrain bread has more fibre."],
+ ["Olives and crisps are ______ food.", ["salty","sweet","spicy","wholegrain"], "🫒", "Too much salty food is bad for you."],
+ ["Coffee without sugar tastes ______.", ["bitter","sweet","salty","fresh"], "☕", "Dark chocolate is a bit bitter."],
+ ["Cakes and bread are ______ in the oven.", ["baked","fried","boiled","frozen"], "🎂", "She baked a cake for the party."],
+ ["A curry with a lot of chilli is very ______.", ["spicy","sour","sweet","salty"], "🌶️", "This sauce is too spicy for me!"],
+ ["Food that has just been picked or made is ______.", ["fresh","frozen","fried","tinned"], "🥬", "We buy fresh fruit at the market."],
+ ["Pasta, rice and bread are full of ______.", ["carbohydrates","vitamins","minerals","proteins"], "🍝", "Carbohydrates give you energy."],
+ ["Which adjective means “it tastes really good”?", ["tasty","nasty","raw","healthy"], "😋", "That soup was very tasty."]
+], hard:[
+ ["Which adjective describes food that is full of the nutrients your body needs?", ["nutritious","delicious","ambitious","suspicious"], "🥗", "B2: Nuts are small but very nutritious."],
+ ["Which adjective describes salty or spicy food rather than sweet food?", ["savoury","sugary","sour","stale"], "🧀", "B2: I prefer savoury snacks to cakes."],
+ ["Bread that is old, dry and hard is…", ["stale","fresh","raw","ripe"], "🍞", "B2: This bread is stale — it's three days old."],
+ ["Fruit that is ready to eat is…", ["ripe","raw","rotten","stale"], "🍑", "B2: Wait until the bananas are ripe."],
+ ["Which adjective describes food made in a factory, with additives?", ["processed","homemade","organic","fresh"], "🏭", "B2: Eat less processed food."],
+ ["Food grown without chemical fertilisers or pesticides is…", ["organic","processed","tinned","frozen"], "🌱", "B2: Organic vegetables cost more."],
+ ["Which adjective describes fresh carrots or crisps that break with a noise?", ["crunchy","creamy","chewy","greasy"], "🥕", "B2: I love crunchy apples."]
+]},
+
+{ id:"adj", name:"Adjectives: People & Things", emoji:"🎭", color:"#a855f7", qs:[
+ ["Which adjective describes an unkind person?", ["nasty","cheerful","sensible","pleasant"], "😠", "Don't be nasty to your little brother."],
+ ["Which adjective describes a happy, positive person?", ["cheerful","nasty","careless","anxious"], "😀", "She's always cheerful in the morning."],
+ ["Which adjective means “worried and nervous”?", ["anxious","amusing","ancient","awful"], "😰", "I feel anxious before exams."],
+ ["Which adjective means “funny, it makes you smile”?", ["amusing","annoying","ancient","anxious"], "😄", "His videos are really amusing."],
+ ["A desk with everything in order is…", ["neat","messy","giant","awful"], "📐", "Her notes are always neat."],
+ ["A desk with things everywhere is…", ["messy","neat","efficient","ordinary"], "🗃️", "My room is a bit messy."],
+ ["Which adjective describes somebody who does not pay attention and makes mistakes?", ["careless","courageous","cheerful","sensible"], "🙃", "A careless mistake cost him the match."],
+ ["Which adjective means “very brave”?", ["courageous","careless","cheerful","curious"], "🦁", "It was a courageous decision."],
+ ["Which adjective describes a natural disaster?", ["awful","pleasant","amusing","hopeful"], "🌪️", "The storm caused awful damage."],
+ ["Which adjective means “so silly that people laugh at it”?", ["ridiculous","reliable","relaxed","ordinary"], "🤡", "That hat looks ridiculous!"],
+ ["Which adjective means “thousands of years old”?", ["ancient","ordinary","incredible","imaginary"], "🏛️", "They visited an ancient Roman city."],
+ ["A person who always tells the truth is…", ["truthful","thrilling","trendy","tiring"], "🤝", "Be truthful, even when it's difficult."],
+ ["Which adjective means “exciting and full of action”?", ["thrilling","thankful","truthful","tiring"], "🎢", "It was a thrilling final."],
+ ["A creature that does not exist in real life is…", ["imaginary","incredible","important","impatient"], "🐉", "Dragons are imaginary animals."],
+ ["Which adjective means “so amazing that it is hard to believe”?", ["incredible","ordinary","unimportant","predictable"], "🤯", "The view was incredible."],
+ ["A film where you always know what is going to happen is…", ["predictable","thrilling","incredible","imaginary"], "😴", "The ending was totally predictable."],
+ ["Which adjective means “working well, without wasting time or energy”?", ["efficient","messy","careless","anxious"], "⚙️", "An efficient student plans their week."],
+ ["Which adjective means “normal, nothing special”?", ["ordinary","incredible","giant","thrilling"], "🙂", "It was just an ordinary Tuesday."],
+ ["Which adjective describes a person who thinks carefully and makes good decisions?", ["sensible","sensitive","silly","selfish"], "🧠", "Wearing a helmet is the sensible thing to do."],
+ ["Which adjective describes a person who feels emotions strongly and is easily hurt?", ["sensitive","sensible","nasty","careless"], "💗", "Be careful, he's very sensitive."],
+ ["Which adjective means “feeling happy about something you have achieved”?", ["proud","pleasant","patient","predictable"], "🏅", "I'm so proud of my team."],
+ ["Which adjective means “nice and enjoyable”?", ["pleasant","nasty","awful","ridiculous"], "🌸", "We had a pleasant afternoon by the river."],
+ ["Which adjective means “calm and not stressed”?", ["relaxed","anxious","angry","nervous"], "😌", "He looks relaxed before the final."],
+ ["Which adjective means “enormous”?", ["giant","tiny","ordinary","neat"], "🦕", "A giant wave hit the boat."],
+ ["Which adjective means “it does not matter at all”?", ["unimportant","incredible","unusual","unhappy"], "🤷", "Forget it, it's unimportant."],
+ ["Which adjective describes somebody who believes good things will happen?", ["hopeful","hopeless","helpful","harmful"], "🌈", "We're hopeful about the results."]
+], hard:[
+ ["Which adjective describes somebody who never changes their mind?", ["stubborn","sincere","sociable","sensible"], "🐐", "B2: He's as stubborn as a mule."],
+ ["Which adjective describes somebody who thinks they are better than everyone else?", ["arrogant","anxious","amusing","ambitious"], "😤", "B2: Nobody likes an arrogant winner."],
+ ["Which adjective means “clever and funny with words”?", ["witty","wealthy","weary","willing"], "🎤", "B2: She gave a witty answer."],
+ ["Which adjective means “extremely boring and too long”?", ["tedious","tremendous","terrific","temporary"], "🥱", "B2: The film was two tedious hours."],
+ ["Which adjective describes somebody who believes anything you tell them?", ["gullible","grateful","generous","graceful"], "🙃", "B2: Don't be so gullible — it's a scam."],
+ ["Which adjective describes somebody who recovers quickly from problems?", ["resilient","reluctant","ridiculous","reliable"], "💪", "B2: Teenagers are more resilient than we think."],
+ ["Which adjective describes somebody who cares about every small detail?", ["meticulous","mediocre","miserable","modest"], "🔎", "B2: Her notes are meticulous."]
+]},
+
+{ id:"travel", name:"Travel & Camping", emoji:"🏕️", color:"#06b6d4", qs:[
+ ["Which verb goes with “a tent”? We ______ a tent.", ["put up","book","pack","plan"], "⛺", "We put up the tent next to the river."],
+ ["Which verb goes with “a campfire”?", ["build","book","pack","take"], "🔥", "They built a campfire and told stories."],
+ ["Which verb goes with “your bag”?", ["pack","plan","put up","spend"], "🎒", "Pack your bag the night before."],
+ ["Which verb goes with “a route”?", ["plan","build","pack","book"], "🗺️", "We planned the route on a map."],
+ ["Which verb goes with “backpacking”?", ["go","make","take","put"], "🌍", "They went backpacking around Asia."],
+ ["Which verb goes with “the night”? We ______ the night at a campsite.", ["spend","take","make","book"], "🌙", "We spent the night in a tent."],
+ ["Which verb goes with “reservations”?", ["make","build","put up","go"], "📅", "I'll make the reservations online."],
+ ["Which verb goes with “a room” in a hotel?", ["book","build","pack","take"], "🛎️", "We booked a room for two nights."],
+ ["Which verb goes with “a break”? Let's ______ a break.", ["take","make","build","put"], "☕", "We took a break after three hours."],
+ ["Which verb goes with “a ride” when you need somebody to take you by car?", ["find","build","book","put up"], "🚗", "We found a ride to the station."],
+ ["Which document do you need to travel to another country?", ["a passport","a postcard","a suitcase","a timetable"], "🛂", "My passport expires next year."],
+ ["Where do you leave your suitcases at the airport?", ["at the check-in desk","at the departure gate","in the arrivals hall","at the campsite"], "🧳", "Check-in closes 40 minutes before the flight."],
+ ["Which word means all the bags you take on a journey?", ["luggage","language","landing","lounge"], "🧳", "Our luggage arrived two days later."],
+ ["Which word means the moment the plane leaves?", ["departure","arrival","landing","booking"], "🛫", "Check the departure time on the screen."],
+ ["Where do you wait just before you get on the plane?", ["at the gate","in the tent","at the campsite","on the route"], "🚪", "Gate 24 closes in ten minutes."],
+ ["Which word means a place where you can camp with tents?", ["a campsite","a campfire","a cabin","a corridor"], "⛺", "The campsite had showers and a shop."],
+ ["Travelling with everything in one big rucksack is called…", ["backpacking","boarding","booking","packing"], "🎒", "Backpacking is cheap and flexible."],
+ ["Which word means the journey by plane from one city to another?", ["flight","fright","freight","float"], "✈️", "Our flight to Dublin takes two hours."]
+], hard:[
+ ["Which word means the detailed plan of a journey, day by day?", ["itinerary","inventory","invitation","insurance"], "📋", "B2: Our itinerary includes three cities."],
+ ["Which document shows your seat number and your gate?", ["a boarding pass","a passport","a visa","a receipt"], "🎫", "B2: Show your boarding pass at the gate."],
+ ["Which word means a place to stay: a hotel, a hostel or a flat?", ["accommodation","achievement","advertisement","announcement"], "🏨", "B2: Accommodation in August is expensive."],
+ ["Which word means visiting the famous places of a city?", ["sightseeing","sunbathing","skydiving","shoplifting"], "📸", "B2: We spent the morning sightseeing."],
+ ["Which adjective describes a place that is far away and difficult to reach?", ["remote","crowded","ancient","pleasant"], "🏔️", "B2: They live in a remote village."],
+ ["Which adjective means “so beautiful that it takes your breath away”?", ["breathtaking","breathless","bearable","brand-new"], "🌄", "B2: The view from the top was breathtaking."],
+ ["If your flight leaves an hour late, there is a ______.", ["delay","departure","discount","detour"], "⏰", "B2: A two-hour delay because of the snow."]
+]},
+
+{ id:"sport", name:"Sport", emoji:"🏅", color:"#eab308", qs:[
+ ["Where do you play football? On a…", ["pitch","court","net","track"], "⚽", "The pitch was wet after the rain."],
+ ["Where do you play tennis or basketball? On a…", ["court","pitch","pool","track"], "🎾", "There are four tennis courts here."],
+ ["Which verb means “to kick or throw the ball at the goal or the basket”?", ["shoot","score","beat","train"], "🏀", "Shoot! You're in front of the goal!"],
+ ["Which piece of equipment do you use in baseball or cricket?", ["a bat","a net","goggles","a cap"], "⚾", "He hit the ball with the bat."],
+ ["Where do you go to do exercise on machines?", ["a fitness centre","a swimming pool","a court","a pitch"], "🏋️", "She goes to the fitness centre twice a week."],
+ ["What do swimmers wear over their eyes?", ["goggles","a cap","gloves","a helmet"], "🥽", "Goggles protect your eyes from the chlorine."],
+ ["Which verb means “to get a point or a goal”?", ["score","shoot","beat","work out"], "🥅", "She scored in the last minute."],
+ ["A person who wins a big competition is a…", ["champion","coach","referee","lifeguard"], "🏆", "He is the world champion."],
+ ["Which verb means “to win against another team”?", ["beat","score","shoot","train"], "💪", "We beat them 3–0."],
+ ["Who controls the match and shows the cards?", ["the referee","the coach","the goalkeeper","the lifeguard"], "🟨", "The referee gave him a red card."],
+ ["Who tries to stop the ball going into the goal?", ["the goalkeeper","the referee","the champion","the lifeguard"], "🧤", "Their goalkeeper saved three shots."],
+ ["What do swimmers wear on their head?", ["a swimming cap","goggles","a helmet","a net"], "🏊", "You need a swimming cap in this pool."],
+ ["Usain Bolt ran 100 metres in 9.58 seconds, breaking a world ______.", ["record","score","medal","net"], "⏱️", "Nobody has broken that record yet."],
+ ["In tennis and volleyball, the ball goes over a ______.", ["net","bat","court","cap"], "🏐", "The ball hit the net."],
+ ["The ______ helped the gymnast improve her technique.", ["coach","referee","lifeguard","champion"], "🤸", "Our coach is very demanding."],
+ ["A ______ makes sure that swimmers are safe.", ["lifeguard","goalkeeper","referee","coach"], "🛟", "The lifeguard jumped into the pool."],
+ ["Sandra is ______ at the fitness centre right now.", ["working out","finishing first","scoring","shooting"], "🏋️‍♀️", "I work out three times a week."],
+ ["Ben received a medal after he ______.", ["finished first","worked out","shot","beat"], "🥇", "He finished first by two seconds."]
+], hard:[
+ ["Which word means the player or team you play against?", ["opponent","spectator","substitute","supporter"], "🤼", "B2: Their opponents were much taller."],
+ ["Which word means a player who comes on to replace another one?", ["substitute","spectator","striker","sponsor"], "🔄", "B2: The substitute scored the winning goal."],
+ ["Which word means the people who watch a match?", ["spectators","substitutes","sponsors","stewards"], "👏", "B2: 50,000 spectators filled the stadium."],
+ ["Which word means a competition with many matches, like Wimbledon?", ["tournament","training","trophy","tackle"], "🏆", "B2: They won the tournament in 2024."],
+ ["Which word means the ability to keep going for a long time without getting tired?", ["endurance","endeavour","enthusiasm","entrance"], "🏃", "B2: A marathon is a test of endurance."],
+ ["Which word means the team that nobody expects to win?", ["the underdog","the champion","the coach","the captain"], "🐶", "B2: Everybody loves an underdog story."],
+ ["Which word means the person or team that finishes second?", ["the runner-up","the referee","the reserve","the record"], "🥈", "B2: The runner-up also gets a medal."]
+]}
+
+];
+</script>
+
+<script>
+/* =====================================================================
+   VOCAB BATTLE · game engine
+   ===================================================================== */
+
+const TEAM_PRESETS = [
+  { name:"Green Dragons", emoji:"🐉", color:"#10b981" },
+  { name:"Blue Sharks",   emoji:"🦈", color:"#38bdf8" },
+  { name:"Gold Lions",    emoji:"🦁", color:"#f59e0b" },
+  { name:"Purple Eagles", emoji:"🦅", color:"#d946ef" }
+];
+const MASCOTS = ["🐉","🦈","🦁","🦅","🐺","🦊","🐯","🦖","🐨","🦉","🐙","🦄","⚡","🔥","🚀","👾"];
+const LEVELS = [
+  { id:"slow",   name:"Slow",   secs:20, emoji:"🐢" },
+  { id:"fast",   name:"Fast",   secs:15, emoji:"⚡" },
+  { id:"faster", name:"Faster", secs:10, emoji:"🔥" }
+];
+const FORMATS = {
+  mcq:      { label:"Multiple choice", icon:"fa-list-ul",     bonus:0, help:"Choose A, B, C or D",        sub:"speed points only" },
+  gap:      { label:"Fill in the gap", icon:"fa-keyboard",    bonus:1, help:"Type the missing word",      sub:"+1 bonus point" },
+  scramble: { label:"Unscramble",      icon:"fa-shuffle",     bonus:1, help:"Put the letters in order",   sub:"+1 bonus point" },
+  vowels:   { label:"Missing vowels",  icon:"fa-spell-check", bonus:1, help:"Put the vowels back",        sub:"+1 bonus point" },
+  listen:   { label:"Listen & write",  icon:"fa-headphones",  bonus:1, help:"Listen, then write the word", sub:"+1 bonus point" }
+};
+const TYPED = ["gap", "vowels", "listen"];
+/* Speed points: answer in the first third of the time = 3, middle third = 2, last third = 1 */
+const speedPoints = frac => frac > 2/3 ? 3 : frac > 1/3 ? 2 : 1;
+const speedLabel  = p => p === 3 ? "lightning fast ⚡" : p === 2 ? "quick 👍" : "just in time ⏳";
+const isTyped = f => TYPED.includes(f);
+const VOWELS = "AEIOU";
+
+/* --- speech: used by the "Listen & write" challenge ---------------------
+   Browsers expose very different voices. Some (eSpeak on Linux, old SAPI
+   voices) really do sound like a tin robot, so we rank them and let the
+   teacher pick and preview another one before the lesson. */
+let VOICE = null, VOICES = [];
+function voiceScore(v) {
+  const n = (v.name || "").toLowerCase(), l = (v.lang || "").toLowerCase();
+  let s = 0;
+  if (/natural|neural|premium|enhanced/.test(n)) s += 70;   // Edge/Windows 11 natural voices
+  if (/google/.test(n)) s += 45;                            // Chrome's online voices
+  if (/siri|samantha|daniel|serena|karen|moira/.test(n)) s += 35;  // macOS/iOS
+  if (/microsoft/.test(n)) s += 20;
+  if (/espeak|festival|pico|robot|compact/.test(n)) s -= 80; // the tinny ones
+  if (v.localService === false) s += 12;
+  if (l.startsWith("en-gb")) s += 22; else if (l.startsWith("en-us")) s += 16; else if (l.startsWith("en")) s += 8;
+  return s;
+}
+function loadVoices() {
+  try {
+    VOICES = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a));
+  } catch (e) { VOICES = []; }
+  VOICE = VOICES.find(v => v.name === S.voiceName) || VOICES[0] || null;
+  return VOICE;
+}
+function speechReady() { return typeof speechSynthesis !== "undefined" && !!(VOICE || loadVoices()); }
+const CARRIERS = ["Listen carefully.", "Here is your word.", "Are you ready?", "Your word is:"];
+function speakWord(w, plain) {
+  try {
+    speechSynthesis.cancel();
+    if (!VOICE) loadVoices();
+    // a bare word read on its own is what sounds mechanical; a short carrier
+    // phrase plus a repeat gives the engine something to put a rhythm on
+    const text = plain ? w : `${CARRIERS[Math.floor(Math.random() * CARRIERS.length)]} ${w}. ${w}.`;
+    const u = new SpeechSynthesisUtterance(text);
+    if (VOICE) { u.voice = VOICE; u.lang = VOICE.lang; } else u.lang = "en-GB";
+    u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+const S = {
+  teamCount: 2, rounds: 8, level: 1,
+  topics: TOPICS.map(t => t.id),
+  formats: ["mcq", "gap", "scramble", "vowels", "listen"],
+  challengeEvery: 1, challengeOffset: 0,
+  teams: [], customQs: [], customHard: [], onlyCustom: false, queue: [], index: 0,
+  answered: false, timer: null, deadline: 0, limitMs: 15000, lastTick: -1,
+  musicOn: true, sfxOn: true, voiceName: "", countdownTimer: null,
+  gapTyped: "", scrambleSlots: [], scrambleUsed: []
+};
+
+/* ---------------------------------------------------------------- utils */
+const $ = id => document.getElementById(id);
+const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const norm = s => String(s).toLowerCase().trim().replace(/^(to|a|an|the)\s+/, "").replace(/\s+/g, " ");
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function toggleFullScreen() {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+}
+
+/* ================================================================ AUDIO
+   Everything is synthesised live (no audio files to load in class). The
+   signal chain gives it some air: bus -> gentle compressor -> output, with a
+   reverb send, so it sounds like a room and not like a 1980s handheld. */
+let AC = null, MASTER = null, MUSIC_BUS = null, SFX_BUS = null, REVERB = null, NOISE = null;
+function buildChain() {
+  const c = AC;
+  MASTER = c.createGain(); MASTER.gain.value = 0.85;
+  const comp = c.createDynamicsCompressor();
+  comp.threshold.value = -20; comp.knee.value = 24; comp.ratio.value = 3.5;
+  comp.attack.value = 0.006; comp.release.value = 0.25;
+  MASTER.connect(comp); comp.connect(c.destination);
+
+  REVERB = c.createConvolver();
+  const len = Math.floor(c.sampleRate * 2.4), buf = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8);
+  }
+  REVERB.buffer = buf;
+  const rev = c.createGain(); rev.gain.value = 0.3;
+  REVERB.connect(rev); rev.connect(MASTER);
+
+  const warm = c.createBiquadFilter();                 // takes the edge off the top end
+  warm.type = "lowpass"; warm.frequency.value = 3200; warm.Q.value = 0.5;
+  MUSIC_BUS = c.createGain(); MUSIC_BUS.gain.value = 0.55;
+  MUSIC_BUS.connect(warm); warm.connect(MASTER);
+  const mSend = c.createGain(); mSend.gain.value = 0.35; MUSIC_BUS.connect(mSend); mSend.connect(REVERB);
+
+  SFX_BUS = c.createGain(); SFX_BUS.gain.value = 0.9;
+  SFX_BUS.connect(MASTER);
+  const sSend = c.createGain(); sSend.gain.value = 0.45; SFX_BUS.connect(sSend); sSend.connect(REVERB);
+
+  const nLen = Math.floor(c.sampleRate * 1.2);
+  NOISE = c.createBuffer(1, nLen, c.sampleRate);
+  const nd = NOISE.getChannelData(0);
+  for (let i = 0; i < nLen; i++) nd[i] = Math.random() * 2 - 1;
+}
+function ac() {
+  if (!AC) { AC = new (window.AudioContext || window.webkitAudioContext)(); buildChain(); }
+  if (AC.state === "suspended") AC.resume();
+  return AC;
+}
+const bus = name => (name === "sfx" ? SFX_BUS : MUSIC_BUS);
+
+/* one soft note: two slightly detuned oscillators, smooth attack and release */
+function note(freq, dur, o = {}) {
+  try {
+    const c = ac(), t = c.currentTime + (o.at || 0);
+    const g = c.createGain(), out = bus(o.bus || "music");
+    const vol = o.vol == null ? 0.2 : o.vol, atk = o.attack == null ? 0.02 : o.attack;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    let dest = g;
+    if (o.filter) {
+      const f = c.createBiquadFilter();
+      f.type = "lowpass"; f.frequency.setValueAtTime(o.filter, t); f.Q.value = 0.7;
+      g.connect(f); f.connect(out);
+    } else g.connect(out);
+    [0, o.detune == null ? 6 : o.detune].forEach((cents, i) => {
+      if (i && !cents) return;
+      const osc = c.createOscillator();
+      osc.type = o.type || "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+      osc.detune.value = cents;
+      osc.connect(dest); osc.start(t); osc.stop(t + dur + 0.08);
+    });
+  } catch (e) {}
+}
+/* filtered noise: hats, clicks and whooshes sound far better than square beeps */
+function noise(dur, o = {}) {
+  try {
+    const c = ac(), t = c.currentTime + (o.at || 0);
+    const src = c.createBufferSource(); src.buffer = NOISE;
+    const f = c.createBiquadFilter();
+    f.type = o.type || "bandpass";
+    f.frequency.setValueAtTime(o.from || 1800, t);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    f.Q.value = o.q == null ? 1.2 : o.q;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.vol == null ? 0.12 : o.vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(bus(o.bus || "sfx"));
+    src.start(t); src.stop(t + dur + 0.05);
+  } catch (e) {}
+}
+
+const sfx = {
+  correct() { if (!S.sfxOn) return;                       // bright bell arpeggio
+    [784, 988, 1175, 1568].forEach((f, i) => note(f, .9, { bus:"sfx", type:"sine", vol:.22, at:i*.07, attack:.008 }));
+    note(392, 1.1, { bus:"sfx", type:"triangle", vol:.12, attack:.01 }); },
+  wrong()   { if (!S.sfxOn) return;                       // soft low thud, no buzzsaw
+    note(196, .5, { bus:"sfx", type:"triangle", vol:.16, to:98, filter:900 });
+    note(98, .7, { bus:"sfx", type:"sine", vol:.18, at:.05, filter:500 }); },
+  timeout() { if (!S.sfxOn) return;
+    [523, 415, 330].forEach((f, i) => note(f, .55, { bus:"sfx", type:"triangle", vol:.16, at:i*.17, filter:2200 })); },
+  tick()    { if (!S.sfxOn) return; noise(.06, { from:2600, to:1200, vol:.07, q:2.4 });
+    note(1200, .07, { bus:"sfx", type:"sine", vol:.05, attack:.004 }); },
+  whoosh()  { if (!S.sfxOn) return; noise(.5, { type:"bandpass", from:300, to:3200, vol:.1, q:.8 }); },
+  click()   { if (!S.sfxOn) return; note(880, .09, { bus:"sfx", type:"sine", vol:.08, attack:.005 }); },
+  type()    { if (!S.sfxOn) return; noise(.03, { from:3000, to:2000, vol:.05, q:3 }); },
+  count()   { if (!S.sfxOn) return; note(660, .35, { bus:"sfx", type:"sine", vol:.16, attack:.006 }); },
+  star()    { if (!S.sfxOn) return;
+    [1047, 1319, 1568, 2093].forEach((f, i) => note(f, .8, { bus:"sfx", type:"sine", vol:.14, at:i*.09, attack:.006 })); },
+  fanfare() { if (!S.sfxOn) return;                       // little brass section
+    const chord = (root, at) => [1, 1.26, 1.5, 2].forEach(m =>
+      note(root * m, 1.1, { bus:"sfx", type:"sawtooth", vol:.07, at, attack:.05, filter:2400, detune:9 }));
+    chord(262, 0); chord(349, .34); chord(392, .68); chord(523, 1.05);
+    [65, 87, 98, 131].forEach((f, i) => note(f, 1.2, { bus:"sfx", type:"triangle", vol:.12, at:i*.34 })); }
+};
+
+/* ------- background "thinking" music: warm pad + bass + soft arpeggio ------- */
+const CHORDS = [                                   // Am - F - C - G, one bar each
+  { bass: 110, notes: [220, 262, 330] },
+  { bass: 87,  notes: [175, 220, 262] },
+  { bass: 131, notes: [196, 262, 330] },
+  { bass: 98,  notes: [196, 247, 294] }
+];
+const ARP = [0, 2, 1, 2, 0, 1, 2, 1];
+let musicStep = 0, musicTimeout = null, tense = false;
+function musicLoop() {
+  if (!S.musicOn) return;
+  const step = musicStep % 32, bar = Math.floor(step / 8) % 4, ch = CHORDS[bar];
+  if (step % 8 === 0) {                                     // pad, once per bar
+    ch.notes.forEach((f, i) => note(f, tense ? 1.2 : 2.1,
+      { type:"triangle", vol: tense ? .05 : .045, attack:.5, at:i*.02, filter:1800, detune:7 }));
+    note(ch.bass, tense ? 1.1 : 1.9, { type:"sine", vol:.14, attack:.03, filter:700 });
+  }
+  if (step % 4 === 2) note(ch.bass * 1.5, .5, { type:"sine", vol:.07, filter:800 });
+  note(ch.notes[ARP[step % 8]] * 2, .5, { type:"triangle", vol: tense ? .05 : .035, attack:.012, filter:2600 });
+  if (step % 2 === 1) noise(.04, { bus:"music", from:6000, to:4000, vol: tense ? .035 : .022, q:1.8 });
+  if (tense && step % 4 === 0) note(55, .35, { type:"sine", vol:.18, filter:300 });   // heartbeat
+  musicStep++;
+  musicTimeout = setTimeout(musicLoop, tense ? 190 : 300);
+}
+function startMusic() { stopMusic(); tense = false; musicStep = 0; if (S.musicOn) musicLoop(); }
+function stopMusic() { clearTimeout(musicTimeout); musicTimeout = null; }
+function toggleMusic() {
+  S.musicOn = !S.musicOn;
+  $("btnMusic").className = "w-12 h-12 md:w-14 md:h-14 rounded-2xl border transition text-lg " +
+    (S.musicOn ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-emerald-400" : "bg-slate-900 border-slate-800 text-slate-600");
+  $("btnMusic").innerHTML = '<i class="fa-solid fa-' + (S.musicOn ? "music" : "volume-xmark") + '"></i>';
+  if (!S.musicOn) stopMusic();
+  else if ($("screenQuestion").classList.contains("active") && !S.answered && S.queue[S.index] && S.queue[S.index].format !== "listen") startMusic();
+}
+function toggleSfx() {
+  S.sfxOn = !S.sfxOn;
+  $("btnSfx").className = "w-12 h-12 md:w-14 md:h-14 rounded-2xl border transition text-lg " +
+    (S.sfxOn ? "bg-slate-800 hover:bg-slate-700 border-slate-700 text-emerald-400" : "bg-slate-900 border-slate-800 text-slate-600");
+  $("btnSfx").innerHTML = '<i class="fa-solid fa-' + (S.sfxOn ? "volume-high" : "volume-xmark") + '"></i>';
+}
+
+/* ============================================================= CONFETTI */
+const cvs = $("confetti"), ctx = cvs.getContext("2d");
+let parts = [], confettiRAF = null;
+function sizeCanvas() { cvs.width = innerWidth; cvs.height = innerHeight; }
+addEventListener("resize", sizeCanvas); sizeCanvas();
+function confetti(colors, count = 90, originY = 0.45) {
+  for (let i = 0; i < count; i++) {
+    parts.push({
+      x: innerWidth / 2 + (Math.random() - .5) * innerWidth * .5,
+      y: innerHeight * originY + (Math.random() - .5) * 60,
+      vx: (Math.random() - .5) * 13, vy: Math.random() * -15 - 4,
+      s: Math.random() * 9 + 5, r: Math.random() * Math.PI,
+      vr: (Math.random() - .5) * .4, c: colors[i % colors.length], life: 150
+    });
+  }
+  if (!confettiRAF) drawConfetti();
+}
+function drawConfetti() {
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  parts = parts.filter(p => p.life-- > 0 && p.y < innerHeight + 60);
+  parts.forEach(p => {
+    p.vy += .42; p.x += p.vx; p.y += p.vy; p.vx *= .992; p.r += p.vr;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+    ctx.fillStyle = p.c; ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 60));
+    ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * .6); ctx.restore();
+  });
+  confettiRAF = parts.length ? requestAnimationFrame(drawConfetti) : (ctx.clearRect(0,0,cvs.width,cvs.height), null);
+}
+function floatPoints(text, color) {
+  const d = document.createElement("div");
+  d.className = "float-points"; d.textContent = text; d.style.color = color;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 1500);
+}
+
+/* ================================================================ SETUP */
+function buildTeams() {
+  const old = S.teams.slice();
+  S.teams = [];
+  for (let i = 0; i < S.teamCount; i++) {
+    const p = TEAM_PRESETS[i], o = old[i];
+    S.teams.push({ name: o ? o.name : p.name, emoji: o ? o.emoji : p.emoji, color: p.color,
+                   score: 0, correct: 0, answered: 0, streak: 0, best: 0, challenges: 0, fastest: 0 });
+  }
+}
+function renderTeamCount() {
+  $("teamCountPicker").innerHTML = [2, 3, 4].map(n => `
+    <button onclick="setTeamCount(${n})" class="pick ${S.teamCount === n ? "on" : ""} py-4 text-center">
+      <div class="text-3xl md:text-4xl font-black ${S.teamCount === n ? "text-emerald-400" : "text-slate-300"}">${n}</div>
+      <div class="text-[11px] font-black uppercase tracking-widest text-slate-500">teams</div>
+    </button>`).join("");
+}
+function renderTeamNames() {
+  $("teamNameList").innerHTML = S.teams.map((t, i) => `
+    <div class="flex items-center gap-3 bg-slate-950/70 border-2 rounded-2xl p-3" style="border-color:${t.color}44">
+      <button onclick="cycleMascot(${i})" title="Change mascot" class="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl flex-none transition hover:scale-110" style="background:${t.color}22;border:2px solid ${t.color}66">${t.emoji}</button>
+      <input value="${esc(t.name)}" maxlength="22" oninput="S.teams[${i}].name=this.value"
+        class="flex-grow min-w-0 bg-transparent text-lg md:text-2xl font-black text-white focus:outline-none">
+      <span class="text-[10px] font-black uppercase tracking-widest flex-none px-3 py-1 rounded-full" style="background:${t.color}22;color:${t.color}">Team ${i + 1}</span>
+    </div>`).join("");
+}
+function cycleMascot(i) {
+  S.teams[i].emoji = MASCOTS[(MASCOTS.indexOf(S.teams[i].emoji) + 1) % MASCOTS.length];
+  sfx.click(); renderTeamNames();
+}
+function setTeamCount(n) { S.teamCount = n; buildTeams(); renderTeamCount(); renderTeamNames(); updatePool(); sfx.click(); }
+function setRounds(v) { S.rounds = parseInt(v, 10); $("roundValue").textContent = S.rounds; updatePool(); }
+
+function renderDifficulty() {
+  $("difficultyPicker").innerHTML = LEVELS.map((l, i) => `
+    <button onclick="setLevel(${i})" class="pick ${S.level === i ? "on" : ""} py-4 px-2 text-center">
+      <div class="text-3xl md:text-4xl">${l.emoji}</div>
+      <div class="font-black text-base md:text-lg ${S.level === i ? "text-emerald-400" : "text-slate-200"} mt-1">${l.name}</div>
+      <div class="text-[11px] font-bold text-slate-500">${l.secs}s</div>
+    </button>`).join("");
+}
+function setLevel(i) { S.level = i; renderDifficulty(); sfx.click(); }
+
+function renderTopics() {
+  $("topicPicker").innerHTML = TOPICS.map(t => `
+    <button onclick="toggleTopic('${t.id}')" class="chip ${S.topics.includes(t.id) ? "on" : ""}">
+      <span class="mr-1">${t.emoji}</span>${esc(t.name)}
+    </button>`).join("");
+}
+function toggleTopic(id) {
+  S.topics = S.topics.includes(id) ? S.topics.filter(x => x !== id) : S.topics.concat(id);
+  renderTopics(); updatePool(); sfx.click();
+}
+function selectAllTopics(all) { S.topics = all ? TOPICS.map(t => t.id) : []; renderTopics(); updatePool(); sfx.click(); }
+
+function challengeRounds() {
+  const every = S.challengeEvery, rs = [];
+  if (every) for (let r = 0; r < S.rounds; r++) if (r % every === 0) rs.push(r);
+  return rs;
+}
+function challengeTeamOf(round) {
+  const k = challengeRounds().indexOf(round);
+  return k === -1 ? null : S.teams[(k + S.challengeOffset) % S.teamCount];
+}
+function renderChallenge() {
+  const opts = [
+    { v:1, icon:"⭐", title:"Every round",   sub:"1 per round" },
+    { v:2, icon:"✨", title:"Every 2 rounds", sub:"fewer, but still B2" },
+    { v:0, icon:"🚫", title:"Off",            sub:"book words only" }
+  ];
+  $("challengePicker").innerHTML = opts.map(o => `
+    <button onclick="setChallenge(${o.v})" class="pick ${S.challengeEvery === o.v ? "on" : ""} py-4 px-2 text-center">
+      <div class="text-3xl">${o.icon}</div>
+      <div class="font-black text-sm md:text-base ${S.challengeEvery === o.v ? "text-emerald-400" : "text-slate-200"} mt-1">${o.title}</div>
+      <div class="text-[11px] font-bold text-slate-500">${o.sub}</div>
+    </button>`).join("");
+  const n = challengeRounds().length;
+  $("challengeInfo").innerHTML = n
+    ? `⭐ ${n} challenge question${n > 1 ? "s" : ""} this game (double points), shared out by rotation so every team gets its turn — and the screen always warns you one round in advance.`
+    : "All the questions come from the book vocabulary.";
+}
+function setChallenge(v) { S.challengeEvery = v; renderChallenge(); updatePool(); sfx.click(); }
+
+function renderFormats() {
+  $("formatPicker").innerHTML = Object.entries(FORMATS).map(([k, f]) => {
+    const off = k === "listen" && !speechReady();
+    const on = S.formats.includes(k) && !off;
+    return `
+    <button onclick="toggleFormat('${k}')" class="pick ${on ? "on" : ""} ${off ? "opacity-40" : ""} py-4 px-2 text-center">
+      <div class="text-2xl md:text-3xl ${on ? "text-emerald-400" : "text-slate-400"}"><i class="fa-solid ${f.icon}"></i></div>
+      <div class="font-black text-xs md:text-sm ${on ? "text-emerald-400" : "text-slate-200"} mt-1">${f.label}</div>
+      <div class="text-[10px] font-bold text-slate-500">${off ? "no English voice on this computer" : f.sub}</div>
+    </button>`;
+  }).join("");
+}
+function renderVoicePicker() {
+  const box = $("voiceBox");
+  if (!speechReady() || !VOICES.length) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  $("voiceSelect").innerHTML = VOICES.map(v =>
+    `<option value="${esc(v.name)}" ${VOICE && v.name === VOICE.name ? "selected" : ""}>${esc(v.name)} — ${esc(v.lang)}${voiceScore(v) >= 45 ? " ⭐" : ""}</option>`).join("");
+}
+function setVoice(name) {
+  S.voiceName = name;
+  VOICE = VOICES.find(v => v.name === name) || VOICE;
+  testVoice();
+}
+function testVoice() { speakWord("Listen and write the word: champion.", true); }
+
+function toggleFormat(k) {
+  if (k === "listen" && !speechReady()) return;
+  const next = S.formats.includes(k) ? S.formats.filter(x => x !== k) : S.formats.concat(k);
+  if (!next.length) return;
+  S.formats = next; renderFormats(); renderVoicePicker(); parseCustomWords(); sfx.click();
+}
+
+function renderCustomMode() {
+  const opts = [
+    { v:false, icon:"📚", title:"My list + the book", sub:"questions from both" },
+    { v:true,  icon:"🔒", title:"Only my list",       sub:"ignore the book topics" }
+  ];
+  $("customModePicker").innerHTML = opts.map(o => `
+    <button onclick="setCustomMode(${o.v})" class="pick ${S.onlyCustom === o.v ? "on" : ""} py-3 px-2 text-center">
+      <div class="text-2xl">${o.icon}</div>
+      <div class="font-black text-sm md:text-base ${S.onlyCustom === o.v ? "text-emerald-400" : "text-slate-200"} mt-1">${o.title}</div>
+      <div class="text-[11px] font-bold text-slate-500">${o.sub}</div>
+    </button>`).join("");
+  $("topicsOffNote").classList.toggle("hidden", !S.onlyCustom);
+  $("topicPicker").style.opacity = S.onlyCustom ? ".35" : "1";
+  $("topicPicker").style.pointerEvents = S.onlyCustom ? "none" : "auto";
+}
+function setCustomMode(v) { S.onlyCustom = v; renderCustomMode(); updatePool(); sfx.click(); }
+
+function toggleCustomBox() {
+  const open = $("customBox").classList.toggle("hidden");
+  $("customChevron").className = "fa-solid fa-chevron-" + (open ? "down" : "up") + " text-slate-400";
+  sfx.click();
+}
+/* A word pasted on its own has no meaning attached. Rather than asking students to
+   unscramble letters with no clue at all, look the word up in the built-in bank: if it
+   is one of the unit's words we already have a real question, its distractors and its
+   example sentence. If it isn't there, the line is skipped and the teacher is told. */
+function bankEntry(word) {
+  const w = word.toLowerCase().trim();
+  for (const t of TOPICS)
+    for (const q of [...t.qs, ...t.hard])
+      if (q[1][0].toLowerCase() === w) return { prompt:q[0], options:q[1], emoji:q[2] || t.emoji, tip:q[3] };
+  return null;
+}
+
+function parseCustomWords() {
+  const raw = $("customInput").value.split("\n").map(l => l.trim()).filter(Boolean);
+  const items = raw.map(line => {
+    let hard = false, l = line;
+    if (/^\*/.test(l)) { hard = true; l = l.replace(/^\*+\s*/, ""); }
+    const parts = l.split(/\s*=\s*/);
+    if (parts.length >= 2 && parts[0] && parts.slice(1).join("=").trim()) {
+      const left = parts[0].trim(), right = parts.slice(1).join(" = ").trim();
+      // "your own sentence" = the left side carries a gap, or it reads like a sentence
+      // whose answer is a single word ("She sprained her ankle. = sprained")
+      const hasGap = /_{2,}/.test(left);
+      const isSentence = hasGap || (left.split(/\s+/).length > 3 && right.split(/\s+/).length <= 2);
+      if (!isSentence) return { kind:"defn", word:left, def:right, hard };
+      let sentence = left;
+      if (!hasGap) {                                   // hide the answer inside the sentence
+        const re = new RegExp("\\b" + right.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
+        sentence = re.test(left) ? left.replace(re, "______") : left + " ______";
+      }
+      return { kind:"sentence", sentence, word:right, hard };
+    }
+    return l ? { kind:"word", word:l, hard } : null;
+  }).filter(Boolean);
+
+  const allWords = items.map(i => i.word);
+  const make = it => {
+    const others = shuffle(allWords.filter(w => w.toLowerCase() !== it.word.toLowerCase())).slice(0, 3);
+    const canMCQ = others.length === 3;
+    const base = { topic:"My word list" + (it.hard ? " · B2" : ""), emoji: it.hard ? "⭐" : "✏️", color: it.hard ? "#fbbf24" : "#34d399" };
+    if (it.kind === "defn")
+      return { ...base, prompt:`Which word means “${it.def}”?`, options:[it.word, ...others],
+               tip:`${it.word} = ${it.def}`, only: canMCQ ? null : ["gap","scramble"], hardFlag: it.hard };
+    if (it.kind === "sentence")
+      return { ...base, prompt: it.sentence,
+               options:[it.word, ...others], tip: it.sentence.replace(/_{2,}/, it.word),
+               only: canMCQ ? null : ["gap","scramble"], hardFlag: it.hard };
+    const known = bankEntry(it.word);            // no meaning given: borrow the clue from the unit bank
+    if (known) return { ...base, emoji: known.emoji, prompt: known.prompt, options: known.options,
+                        tip: known.tip, only: null, hardFlag: it.hard };
+    // still no clue: only the challenges that can be solved without knowing the meaning
+    const can = formatsFor(it.word);
+    const only = ["vowels", "listen"].filter(f => can[f]);
+    if (!only.length) return null;
+    return { ...base, emoji:"🔤", prompt: only.includes("listen") && !only.includes("vowels")
+               ? "🔊 Listen and write the word from your list"
+               : "Complete the word from your list ✍️",
+             options:[it.word, ...others], tip:`The word is: ${it.word}`, only, hardFlag: it.hard };
+  };
+
+  const built = [], noClue = [];
+  items.forEach(it => {
+    const q = make(it);
+    if (!q) { noClue.push(it.word); return; }   // a word on its own that we cannot give a clue for
+    built.push(q);
+  });
+
+  const scrambleOnly = built.filter(q => q.only && q.only.length === 1 && q.only[0] === "scramble").length;
+  S.customQs   = built.filter(q => !q.hardFlag);
+  S.customHard = built.filter(q =>  q.hardFlag);
+
+  const st = $("customStatus");
+  if (!items.length) { st.textContent = "Nothing pasted yet."; st.className = "text-sm font-bold text-slate-400"; }
+  else {
+    const notes = [];
+    if (noClue.length) notes.push(`⚠️ ${noClue.length} line(s) ignored (${esc(noClue.slice(0, 3).join(", "))}${noClue.length > 3 ? "…" : ""}): too long or with no vowels, so they don't work without a meaning. Write them as <strong>word = meaning</strong> and they play in every format.`);
+    const bare = built.filter(q => q.only && q.only.length).length;
+    if (bare) notes.push(`ℹ️ ${bare} word(s) have no meaning attached, so they only come up as <strong>Missing vowels</strong> or <strong>Listen &amp; write</strong>. Add “= meaning” to use them for multiple choice and gap-fill too.`);
+    if (scrambleOnly && !S.formats.includes("scramble")) notes.push(`⚠️ ${scrambleOnly} of them need the Unscramble format — switch it on above.`);
+    st.innerHTML = `✅ ${built.length} question${built.length === 1 ? "" : "s"} created from your list` +
+      (S.customHard.length ? ` (${S.customHard.length} marked ⭐ B2)` : "") + "." +
+      (notes.length ? "<br>" + notes.join("<br>") : "");
+    st.className = "text-sm font-bold " + (notes.length ? "text-amber-400" : "text-emerald-400");
+  }
+  updatePool();
+}
+
+const pick = list => TOPICS.filter(t => S.topics.includes(t.id));
+function corePool() {
+  if (S.onlyCustom) return S.customQs.slice();
+  const pool = [];
+  pick().forEach(t => t.qs.forEach(q => pool.push({ topic:t.name, emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
+  return pool.concat(S.customQs);
+}
+function hardPool() {
+  if (S.onlyCustom) return S.customHard.slice();
+  const pool = [];
+  pick().forEach(t => t.hard.forEach(q => pool.push({ topic:t.name + " · B2", emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
+  return pool.concat(S.customHard);
+}
+
+function updatePool() {
+  renderChallenge();
+  const need = S.rounds * S.teamCount;
+  const core = corePool().length, hard = hardPool().length;
+  const nHard = Math.min(challengeRounds().length, hard);
+  const ok = core + hard >= need && core >= need - nHard;
+  const box = $("poolStatus");
+  $("totalQCount").textContent = need;
+  if (ok) {
+    box.className = "rounded-2xl px-5 py-4 text-base md:text-lg font-bold border-2 border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+    box.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> ${core} core questions + ${hard} ⭐B2 challenge questions available · ${need} needed. No question is ever repeated and the order is reshuffled every game.`;
+    $("startBtn").disabled = false; $("startBtn").classList.remove("opacity-40", "pointer-events-none");
+  } else {
+    box.className = "rounded-2xl px-5 py-4 text-base md:text-lg font-bold border-2 border-rose-500/40 bg-rose-950/40 text-rose-300";
+    box.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> This game needs ${need} questions but only ${core + hard} are available. ` +
+      (S.onlyCustom ? "Paste more words, play fewer rounds, or switch back to “My list + the book”."
+                    : "Switch on more topics, paste your own word list, or play fewer rounds.");
+    $("startBtn").disabled = true; $("startBtn").classList.add("opacity-40", "pointer-events-none");
+  }
+}
+
+/* ---------------------------------------------------------- word list */
+function openWordList() {
+  sfx.click();
+  const body = $("wordListBody");
+  const sel = S.onlyCustom ? [] : pick();
+  body.innerHTML = (sel.length ? sel : (S.onlyCustom ? [] : TOPICS)).map(t => {
+    const core = [...new Set(t.qs.map(q => q[1][0]))];
+    const hard = [...new Set(t.hard.map(q => q[1][0]))];
+    return `<div class="space-y-2">
+      <h4 class="text-lg md:text-2xl font-black text-white border-b border-slate-700 pb-1">${t.emoji} ${esc(t.name)}</h4>
+      <div class="flex flex-wrap gap-2">${core.map(w => `<span class="chip on">${esc(w)}</span>`).join("")}</div>
+      <p class="text-sm font-black text-amber-300 uppercase tracking-widest pt-2">⭐ B2 extra (Captain's Challenge)</p>
+      <div class="flex flex-wrap gap-2">${hard.map(w => `<span class="chip" style="border-color:#f59e0b66;color:#fcd34d">${esc(w)}</span>`).join("")}</div>
+    </div>`;
+  }).join("") + (S.customQs.length + S.customHard.length ? `<div class="space-y-2">
+      <h4 class="text-lg md:text-2xl font-black text-white border-b border-slate-700 pb-1">✏️ My word list</h4>
+      <div class="flex flex-wrap gap-2">${[...new Set(S.customQs.map(q => q.options[0]))].map(w => `<span class="chip on">${esc(w)}</span>`).join("")}</div>
+      ${S.customHard.length ? `<p class="text-sm font-black text-amber-300 uppercase tracking-widest pt-2">⭐ B2 extra (Captain's Challenge)</p>
+      <div class="flex flex-wrap gap-2">${[...new Set(S.customHard.map(q => q.options[0]))].map(w => `<span class="chip" style="border-color:#f59e0b66;color:#fcd34d">${esc(w)}</span>`).join("")}</div>` : ""}
+    </div>` : "");
+  $("wordListModal").classList.add("open");
+}
+function closeWordList() { $("wordListModal").classList.remove("open"); }
+
+/* ============================================================ GAME FLOW */
+/* which challenges a given answer can be turned into */
+function formatsFor(word) {
+  const one = /^[a-zA-Z][a-zA-Z-]*$/.test(word), n = word.length;
+  return {
+    mcq: true,
+    gap:      one && n >= 3 && n <= 12,
+    scramble: one && n >= 3 && n <= 9,                       // longer anagrams don't fit in 10 seconds
+    vowels:   one && n >= 3 && n <= 12 && /[aeiou]/i.test(word),
+    listen:   one && n >= 3 && n <= 12 && speechReady()
+  };
+}
+
+function prepareQuestion(q, isHard) {
+  const correct = q.options[0];
+  const opts = shuffle(q.options);
+  const can = formatsFor(correct);
+  const limited = q.only && q.only.length ? q.only : null;
+  let allowed = (limited || Object.keys(FORMATS)).filter(f => S.formats.includes(f) && can[f]);
+  if (!allowed.length) allowed = (limited || []).filter(f => can[f]);
+  if (!allowed.length) allowed = ["mcq"];
+  const weights = { mcq: isHard ? 4 : 5, gap: 3, scramble: 3, vowels: 3, listen: 2 };
+  const bag = [];
+  allowed.forEach(f => { for (let i = 0; i < weights[f]; i++) bag.push(f); });
+  const format = bag[Math.floor(Math.random() * bag.length)];
+  return { ...q, opts, correct, answer: opts.indexOf(correct), format, hard: !!isHard };
+}
+
+function buildQueue() {
+  const need = S.rounds * S.teamCount;
+  const hardAll = shuffle(hardPool()), coreAll = shuffle(corePool());
+  const chRounds = challengeRounds();
+  let nHard = Math.min(chRounds.length, hardAll.length);
+  if (need - nHard > coreAll.length) nHard = Math.min(hardAll.length, need - coreAll.length);
+  const hardSel = hardAll.slice(0, nHard), coreSel = coreAll.slice(0, need - nHard);
+  const queue = [];
+  let hi = 0, ci = 0, k = 0;
+  for (let r = 0; r < S.rounds; r++) {
+    let slot = -1;
+    if (chRounds.includes(r) && hi < hardSel.length) { slot = (k + S.challengeOffset) % S.teamCount; k++; }
+    for (let t = 0; t < S.teamCount; t++) {
+      let item, isHard = false;
+      if (t === slot && hi < hardSel.length) { item = hardSel[hi++]; isHard = true; }
+      else if (ci < coreSel.length) item = coreSel[ci++];
+      else if (hi < hardSel.length) { item = hardSel[hi++]; isHard = true; }
+      else break;
+      queue.push(prepareQuestion(item, isHard));
+    }
+  }
+  return queue;
+}
+
+function startGame() {
+  ac(); // unlock the audio engine with this user gesture
+  S.challengeOffset = Math.floor(Math.random() * S.teamCount);   // a different team opens the rotation every game
+  S.queue = buildQueue();
+  S.index = 0; S.started = -1;
+  S.teams.forEach(t => { t.score = 0; t.correct = 0; t.answered = 0; t.streak = 0; t.best = 0; t.challenges = 0; t.fastest = 0; });
+  sfx.whoosh();
+  showTurn();
+}
+const curRound = () => Math.floor(S.index / S.teamCount);
+const curTeamIdx = () => S.index % S.teamCount;
+
+function showTurn() {
+  const team = S.teams[curTeamIdx()], q = S.queue[S.index];
+  $("turnRoundLabel").textContent = `Round ${curRound() + 1} of ${S.rounds}`;
+  const card = $("turnCard");
+  card.style.background = `linear-gradient(140deg, ${team.color}2e, #0b1220 70%)`;
+  card.style.borderColor = q.hard ? "#fbbf24" : team.color;
+  card.style.boxShadow = `0 0 60px ${q.hard ? "#fbbf2466" : team.color + "55"}`;
+  card.classList.remove("pop-in"); void card.offsetWidth; card.classList.add("pop-in");
+  $("turnEmoji").textContent = team.emoji;
+  $("turnTeamName").textContent = team.name;
+  $("turnChallengeBanner").classList.toggle("hidden", !q.hard);
+  $("turnPlayerHint").innerHTML = q.hard
+    ? `Question <strong>${curTeamIdx() + 1}</strong> of ${S.teamCount} · <strong class="text-amber-300">this one is B2 extra vocabulary</strong> — send your captain or your strongest player! 🧠`
+    : `Question <strong>${curTeamIdx() + 1}</strong> of ${S.teamCount} · book vocabulary · send a <strong>new player</strong> to the board! 🏃`;
+  showScreen("screenTurn");
+  q.hard ? sfx.star() : sfx.whoosh();
+
+  let n = 3;
+  $("turnCountdown").textContent = n;
+  $("turnCountdown").style.color = q.hard ? "#fbbf24" : team.color;
+  clearInterval(S.countdownTimer);
+  S.countdownTimer = setInterval(() => {
+    n--;
+    if (n <= 0) { clearInterval(S.countdownTimer); beginQuestion(); return; }
+    $("turnCountdown").textContent = n;
+    $("turnCountdown").classList.remove("pop-in"); void $("turnCountdown").offsetWidth; $("turnCountdown").classList.add("pop-in");
+    sfx.count();
+  }, 900);
+}
+
+function renderScoreStrip() {
+  const strip = $("liveScoreStrip");
+  strip.style.gridTemplateColumns = `repeat(${S.teamCount}, minmax(0,1fr))`;
+  strip.innerHTML = S.teams.map((t, i) => {
+    const on = i === curTeamIdx();
+    return `<div class="rounded-2xl border-2 px-3 py-2 md:px-4 md:py-3 flex items-center gap-2 md:gap-3 ${on ? "team-active" : ""}"
+      style="border-color:${on ? t.color : "#1e293b"};background:${on ? t.color + "1f" : "rgba(2,6,23,.7)"}">
+      <span class="text-2xl md:text-3xl flex-none">${t.emoji}</span>
+      <div class="min-w-0 flex-grow">
+        <div class="text-[11px] md:text-sm font-black truncate ${on ? "text-white" : "text-slate-400"}">${esc(t.name)}</div>
+        <div class="text-lg md:text-2xl font-black leading-none" style="color:${on ? t.color : "#64748b"}">${t.score}</div>
+      </div>
+      ${t.streak >= 3 ? `<span class="text-lg md:text-xl flex-none" title="On fire!">🔥</span>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function beginQuestion() {
+  clearInterval(S.countdownTimer); clearTimeout(S.autoCheck);
+  if (S.started === S.index) return;          // the countdown and the skip button can both fire
+  S.started = S.index;
+  const q = S.queue[S.index], team = S.teams[curTeamIdx()];
+  S.answered = false; S.gapTyped = ""; S.scrambleSlots = []; S.scrambleUsed = [];
+  if (q.hard) team.challenges++;
+
+  renderScoreStrip();
+  $("qRoundBadge").textContent = `Round ${curRound() + 1} of ${S.rounds} · question ${curTeamIdx() + 1} of ${S.teamCount}`;
+  $("qTopicBadge").textContent = `${q.emoji} ${q.topic}`;
+  $("qChallengeBadge").classList.toggle("hidden", !q.hard);
+  const f = FORMATS[q.format];
+  $("qFormatBadge").innerHTML = `<i class="fa-solid ${f.icon} mr-1"></i> ${f.label} · ${f.help}`;
+  $("qTeamTurn").innerHTML = `Answering: <span class="font-black" style="color:${team.color}">${esc(team.name)}</span> · ${LEVELS[S.level].name} · ${LEVELS[S.level].secs}s`;
+  $("qEmoji").textContent = q.emoji;
+  $("qPrompt").innerHTML = esc(q.prompt);
+  $("feedbackBox").classList.add("hidden");
+  $("nextBtn").classList.add("hidden");
+  $("questionCard").style.borderColor = q.hard ? "#fbbf2499" : team.color + "66";
+  document.documentElement.style.setProperty("--team", team.color);
+
+  ["optionsGrid", "gapArea", "scrambleArea"].forEach(id => $(id).classList.add("hidden"));
+  if (q.format === "mcq") renderMCQ(q, team);
+  else if (isTyped(q.format)) renderTyping(q, team);
+  else renderScramble(q, team);
+
+  showScreen("screenQuestion");
+  startTimer(LEVELS[S.level].secs * 1000);
+  if (q.format !== "listen") startMusic();          // silence, so the class can hear the word
+}
+
+/* ------------------------------------------------- format: MULTIPLE CHOICE */
+function renderMCQ(q, team) {
+  const grid = $("optionsGrid");
+  grid.classList.remove("hidden");
+  grid.innerHTML = q.opts.map((o, i) => `
+    <button class="opt pop-in flex items-center gap-4 text-lg md:text-2xl" style="--team:${team.color};animation-delay:${i * 70}ms"
+      onclick="answerMCQ(${i})" id="opt${i}">
+      <span class="key">${"ABCD"[i]}</span><span class="flex-grow">${esc(o)}</span>
+    </button>`).join("");
+}
+function answerMCQ(i) {
+  if (S.answered) return;
+  const q = S.queue[S.index];
+  document.querySelectorAll("#optionsGrid .opt").forEach((b, j) => {
+    b.disabled = true;
+    if (j === q.answer) b.classList.add("opt-ok");
+    else if (j === i) b.classList.add("opt-ko");
+    else b.classList.add("opt-dim");
+  });
+  resolve(q.opts[i] === q.correct);
+}
+
+/* ------------------ formats: GAP FILL · MISSING VOWELS · LISTEN & WRITE ----- */
+const KB_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+function maskVowels(w) {
+  return w.toUpperCase().split("").map(c => VOWELS.includes(c) ? "_" : c).join(" ");
+}
+function renderTyping(q, team) {
+  $("gapArea").classList.remove("hidden");
+  $("gapDisplay").className = "min-w-[260px] text-center bg-slate-950 border-2 border-slate-700 rounded-2xl px-6 py-4 text-3xl md:text-5xl gap-word text-white";
+  const w = q.correct, len = w.replace(/[^a-zA-Z-]/g, "").length;
+  const extra = $("gapExtra");
+
+  if (q.format === "vowels") {
+    extra.classList.add("hidden");
+    $("gapHint").innerHTML = `<span class="text-2xl md:text-4xl font-black text-emerald-300 tracking-[.25em]">${maskVowels(w)}</span>
+      <span class="block mt-2">Put the vowels back and write the whole word.</span>`;
+  } else if (q.format === "listen") {
+    extra.classList.remove("hidden"); extra.className = "flex justify-center";
+    extra.innerHTML = `<button onclick="speakWord(S.queue[S.index].correct, true)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xl md:text-3xl px-8 py-5 rounded-2xl transition shadow-xl shadow-emerald-600/40 flex items-center gap-4">
+        <i class="fa-solid fa-volume-high"></i> Play the word again</button>`;
+    $("gapHint").innerHTML = `The word has <strong class="text-white">${len}</strong> letters. Listen as many times as you need — the clock is running! 🔊`;
+    setTimeout(() => speakWord(w), 350);
+  } else {
+    extra.classList.add("hidden");
+    $("gapHint").innerHTML = `The word has <strong class="text-white">${len}</strong> letters and starts with <strong class="text-white">${w[0].toUpperCase()}</strong>.`;
+  }
+
+  $("keyboard").innerHTML = KB_ROWS.map(row => `<div class="flex gap-1 md:gap-2 justify-center flex-wrap">${
+    row.split("").map(c => `<button class="kb" style="--team:${team.color}" onclick="gapType('${c}')">${c}</button>`).join("")
+  }</div>`).join("") +
+  `<div class="flex gap-2 justify-center mt-1">
+     <button class="kb" style="width:auto;padding:0 18px;--team:${team.color}" onclick="gapType('-')">-</button>
+     <button class="kb" style="width:auto;padding:0 18px;--team:${team.color}" onclick="gapBack()"><i class="fa-solid fa-delete-left"></i></button>
+   </div>`;
+  drawGap();
+}
+function drawGap() {
+  const q = S.queue[S.index], len = q.correct.replace(/[^a-zA-Z-]/g, "").length;
+  const typed = S.gapTyped.toUpperCase();
+  const dots = "·".repeat(Math.max(0, len - typed.length));
+  $("gapDisplay").innerHTML = (typed || "") + `<span class="text-slate-600">${dots}</span>`;
+}
+function gapType(c) { if (S.answered || S.gapTyped.length > 20) return; S.gapTyped += c; sfx.type(); drawGap(); }
+function gapBack() { if (S.answered) return; S.gapTyped = S.gapTyped.slice(0, -1); sfx.type(); drawGap(); }
+function checkGap() {
+  if (S.answered) return;
+  const q = S.queue[S.index];
+  const ok = norm(S.gapTyped) === norm(q.correct);
+  $("gapDisplay").className = "min-w-[260px] text-center border-2 rounded-2xl px-6 py-4 text-3xl md:text-5xl gap-word " +
+    (ok ? "bg-emerald-950 border-emerald-500 text-emerald-300" : "bg-rose-950 border-rose-500 text-rose-300");
+  document.querySelectorAll("#keyboard .kb").forEach(b => b.disabled = true);
+  resolve(ok);
+}
+
+/* ----------------------------------------------------- format: UNSCRAMBLE */
+function renderScramble(q, team) {
+  $("scrambleArea").classList.remove("hidden");
+  const letters = q.correct.toUpperCase().split("");
+  let mixed = shuffle(letters);
+  if (mixed.join("") === letters.join("") && letters.length > 2) mixed = shuffle(letters);
+  S.scrambleLetters = mixed;
+  S.scrambleSlots = new Array(letters.length).fill(null);
+  S.scrambleUsed = new Array(letters.length).fill(false);
+  $("scrambleTiles").innerHTML = mixed.map((c, i) =>
+    `<button class="tile pop-in" id="tile${i}" style="--team:${team.color};animation-delay:${i * 60}ms" onclick="placeTile(${i})">${c}</button>`).join("");
+  drawSlots(team);
+}
+function drawSlots(team) {
+  const color = (team || S.teams[curTeamIdx()]).color;
+  $("scrambleSlots").innerHTML = S.scrambleSlots.map((c, i) =>
+    `<div class="slot ${c ? "filled" : ""}" style="--team:${color}" onclick="removeTile(${i})">${c || ""}</div>`).join("");
+}
+function placeTile(i) {
+  if (S.answered || S.scrambleUsed[i]) return;
+  const slot = S.scrambleSlots.indexOf(null);
+  if (slot === -1) return;
+  S.scrambleSlots[slot] = S.scrambleLetters[i];
+  S.scrambleUsed[i] = true;
+  $("tile" + i).classList.add("used");
+  $("tile" + i).dataset.slot = slot;
+  sfx.type(); drawSlots();
+  if (!S.scrambleSlots.includes(null)) {           // auto-check, but never on a later question
+    clearTimeout(S.autoCheck);
+    const at = S.index;
+    S.autoCheck = setTimeout(() => { if (S.index === at && !S.answered) checkScramble(); }, 350);
+  }
+}
+function removeTile(slot) {
+  if (S.answered || !S.scrambleSlots[slot]) return;
+  const tile = [...document.querySelectorAll("#scrambleTiles .tile")].find(t => t.dataset.slot == slot);
+  if (tile) { tile.classList.remove("used"); delete tile.dataset.slot; }
+  S.scrambleUsed = S.scrambleLetters.map((_, i) => {
+    const t = $("tile" + i); return t.classList.contains("used");
+  });
+  S.scrambleSlots[slot] = null;
+  sfx.type(); drawSlots();
+}
+function clearScramble() {
+  if (S.answered) return;
+  S.scrambleSlots = S.scrambleSlots.map(() => null);
+  S.scrambleUsed = S.scrambleUsed.map(() => false);
+  document.querySelectorAll("#scrambleTiles .tile").forEach(t => { t.classList.remove("used"); delete t.dataset.slot; });
+  sfx.click(); drawSlots();
+}
+function checkScramble() {
+  if (S.answered) return;
+  const q = S.queue[S.index];
+  const built = S.scrambleSlots.map(c => c || "").join("");
+  const ok = norm(built) === norm(q.correct);
+  document.querySelectorAll("#scrambleSlots .slot").forEach(s => {
+    s.style.borderColor = ok ? "#10b981" : "#f43f5e";
+    s.style.background = ok ? "rgba(6,78,59,.6)" : "rgba(76,5,25,.6)";
+  });
+  resolve(ok);
+}
+
+/* ================================================================= TIMER */
+function startTimer(ms) {
+  S.limitMs = ms; S.deadline = performance.now() + ms; S.lastTick = -1;
+  cancelAnimationFrame(S.timer);
+  tickTimer();
+}
+function tickTimer() {
+  const left = Math.max(0, S.deadline - performance.now());
+  const frac = left / S.limitMs, secs = Math.ceil(left / 1000);
+  const ring = $("timerRing"), txt = $("timerText");
+  ring.style.strokeDashoffset = (276.4 * (1 - frac)).toFixed(1);
+  const col = frac > .5 ? "#10b981" : frac > .25 ? "#f59e0b" : "#f43f5e";
+  ring.style.stroke = col; txt.style.color = col; txt.textContent = secs;
+  txt.classList.toggle("timer-danger", secs <= 5 && secs > 0);
+  const q = S.queue[S.index];
+  const worth = speedPoints(frac) * (q && q.hard ? 2 : 1);
+  const w = $("timerWorth");
+  w.textContent = worth + (worth === 1 ? " point" : " points");
+  w.style.color = col; w.style.borderColor = col + "88";
+  if (secs !== S.lastTick) {
+    if (secs <= 5 && secs > 0 && !S.answered) { sfx.tick(); tense = true; }
+    S.lastTick = secs;
+  }
+  if (left <= 0) { timeUp(); return; }
+  S.timer = requestAnimationFrame(tickTimer);
+}
+function stopTimer() { cancelAnimationFrame(S.timer); tense = false; stopMusic(); try { speechSynthesis.cancel(); } catch (e) {} }
+
+/* ============================================================== SCORING */
+function resolve(ok) {
+  if (S.answered) return;
+  S.answered = true;
+  const timeLeft = Math.max(0, S.deadline - performance.now());
+  stopTimer();
+  const q = S.queue[S.index], team = S.teams[curTeamIdx()];
+  team.answered++;
+  if (ok) {
+    team.correct++; team.streak++; team.best = Math.max(team.best, team.streak);
+    const speed = speedPoints(timeLeft / S.limitMs);
+    const base = speed * (q.hard ? 2 : 1);
+    const fBonus = FORMATS[q.format].bonus;
+    const sBonus = team.streak >= 3 ? 1 : 0;
+    const gained = base + fBonus + sBonus;
+    team.score += gained;
+    team.fastest = Math.max(team.fastest || 0, speed);
+    sfx.correct();
+    confetti([team.color, "#ffffff", q.hard ? "#fbbf24" : "#34d399", "#34d399"], q.hard ? 160 : 110);
+    floatPoints("+" + gained, q.hard ? "#fbbf24" : team.color);
+    feedback("ok", q, { gained, speed, fBonus, sBonus, team });
+  } else {
+    team.streak = 0;
+    sfx.wrong();
+    $("questionCard").classList.add("shake");
+    setTimeout(() => $("questionCard").classList.remove("shake"), 600);
+    feedback("ko", q, { team });
+  }
+  if (q.format === "mcq") document.querySelectorAll("#optionsGrid .opt").forEach(b => b.disabled = true);
+  renderScoreStrip();
+  $("nextBtn").classList.remove("hidden");
+}
+function timeUp() {
+  if (S.answered) return;
+  S.answered = true;
+  stopTimer();
+  const q = S.queue[S.index], team = S.teams[curTeamIdx()];
+  team.answered++; team.streak = 0;
+  if (q.format === "mcq") document.querySelectorAll("#optionsGrid .opt").forEach((b, j) => {
+    b.disabled = true; b.classList.add(j === q.answer ? "opt-ok" : "opt-dim");
+  });
+  document.querySelectorAll("#keyboard .kb").forEach(b => b.disabled = true);
+  sfx.timeout();
+  feedback("time", q, { team });
+  renderScoreStrip();
+  $("nextBtn").classList.remove("hidden");
+}
+function feedback(state, q, d) {
+  const box = $("feedbackBox");
+  const right = esc(q.correct);
+  const tip = q.tip ? `<p class="text-base md:text-xl text-slate-200 border-t border-white/10 pt-2"><i class="fa-solid fa-lightbulb text-amber-400 mr-2"></i>${esc(q.tip)}</p>` : "";
+  if (state === "ok") {
+    box.className = "rounded-2xl border-2 p-5 md:p-6 space-y-2 border-emerald-500 bg-emerald-950/50 pop-in";
+    const bits = [`${d.speed} speed point${d.speed > 1 ? "s" : ""} — ${speedLabel(d.speed)}`];
+    if (q.hard) bits.push("×2 ⭐ Captain's Challenge");
+    if (d.fBonus) bits.push("+1 for writing it yourself");
+    if (d.sBonus) bits.push("+1 streak bonus 🔥");
+    box.innerHTML = `<p class="text-2xl md:text-4xl font-black text-emerald-300">✅ Correct! +${d.gained} point${d.gained > 1 ? "s" : ""}</p>
+      <p class="text-sm md:text-lg text-emerald-200/90 font-bold">${bits.join(" · ")} · ${esc(d.team.name)}: ${d.team.score} points.</p>${tip}`;
+  } else if (state === "ko") {
+    box.className = "rounded-2xl border-2 p-5 md:p-6 space-y-2 border-rose-500 bg-rose-950/50 pop-in";
+    box.innerHTML = `<p class="text-2xl md:text-4xl font-black text-rose-300">❌ Not this time!</p>
+      <p class="text-lg md:text-2xl text-white font-bold">The correct answer was <span class="text-emerald-400">${right}</span>.</p>${tip}`;
+  } else {
+    box.className = "rounded-2xl border-2 p-5 md:p-6 space-y-2 border-amber-500 bg-amber-950/40 pop-in";
+    box.innerHTML = `<p class="text-2xl md:text-4xl font-black text-amber-300">⏰ Time's up! 0 points</p>
+      <p class="text-lg md:text-2xl text-white font-bold">The correct answer was <span class="text-emerald-400">${right}</span>.</p>${tip}`;
+  }
+  box.classList.remove("hidden");
+}
+
+function afterQuestion() {
+  S.index++;
+  if (S.index >= S.queue.length) { showPodium(); return; }
+  if (S.index % S.teamCount === 0) showRoundScores();
+  else showTurn();
+}
+
+/* ====================================================== ROUND SCOREBOARD */
+function showRoundScores() {
+  const done = curRound(), left = S.rounds - done;
+  $("scoreRoundLabel").textContent = `Round ${done} of ${S.rounds} complete`;
+  const nextChallengeTeam = challengeTeamOf(done);
+  $("scoreSubtitle").innerHTML = (left === 1 ? "One final round to go — this is where it's decided! 🔥"
+      : `${left} rounds to go — anything can still happen!`) +
+    (nextChallengeTeam ? `<br><span class="text-amber-300 font-black">⭐ Next round's Captain's Challenge goes to ${esc(nextChallengeTeam.name)} ${nextChallengeTeam.emoji} — get your captain ready!</span>` : "");
+  $("nextRoundBtn").innerHTML = `Round ${done + 1} <i class="fa-solid fa-arrow-right ml-2"></i>`;
+
+  const ranked = rankTeams(), max = Math.max(1, ranked[0].score);
+  $("scoreList").innerHTML = ranked.map((t, i) => `
+    <div class="bg-slate-900/90 border-2 rounded-3xl p-4 md:p-5 flex items-center gap-4 pop-in" style="border-color:${i === 0 ? t.color : "#1e293b"};animation-delay:${i * 110}ms">
+      <span class="text-2xl md:text-3xl font-black w-10 text-center flex-none">${["🥇","🥈","🥉","4️⃣"][i]}</span>
+      <span class="text-3xl md:text-5xl flex-none">${t.emoji}</span>
+      <div class="flex-grow min-w-0">
+        <div class="flex justify-between items-baseline gap-3">
+          <h3 class="text-lg md:text-2xl font-black text-white truncate">${esc(t.name)}</h3>
+          <span class="text-2xl md:text-4xl font-black flex-none" style="color:${t.color}">${t.score}</span>
+        </div>
+        <div class="scorebar h-3 md:h-4 bg-slate-800 rounded-full overflow-hidden mt-2">
+          <span style="width:${Math.round(t.score / max * 100)}%;background:${t.color}"></span>
+        </div>
+        <p class="text-xs md:text-sm text-slate-400 font-bold mt-1">${t.correct}/${t.answered} correct${t.best >= 3 ? ` · best streak ${t.best} 🔥` : ""}</p>
+      </div>
+    </div>`).join("");
+  showScreen("screenScores");
+  sfx.whoosh();
+}
+function nextRound() { sfx.click(); showTurn(); }
+function rankTeams() {
+  return S.teams.slice().sort((a, b) => b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name));
+}
+
+/* ================================================================ PODIUM */
+function showPodium() {
+  const ranked = rankTeams();
+  const tie = ranked.length > 1 && ranked[0].score === ranked[1].score;
+  $("podiumWinner").innerHTML = tie
+    ? `🤝 It's a draw! ${esc(ranked[0].name)} and ${esc(ranked[1].name)} both finish on ${ranked[0].score} points!`
+    : `🏆 ${esc(ranked[0].name)} win with ${ranked[0].score} points!`;
+
+  const order = [ranked[1], ranked[0], ranked[2]];
+  const heights = ["min(24vh,210px)", "min(32vh,280px)", "min(19vh,165px)"];
+  const medals = ["🥈", "🥇", "🥉"], places = ["2nd", "1st", "3rd"];
+
+  $("podiumStage").innerHTML = order.map((t, i) => {
+    if (!t) return `<div></div>`;
+    return `<div class="flex flex-col items-center justify-end gap-2">
+      ${i === 1 ? `<div class="text-5xl md:text-6xl" style="animation:crownBounce 1.8s ease-in-out infinite">👑</div>` : ""}
+      <div class="text-5xl md:text-7xl floaty">${t.emoji}</div>
+      <div class="text-center px-1">
+        <div class="text-sm md:text-xl font-black text-white leading-tight truncate max-w-[30vw]">${esc(t.name)}</div>
+        <div class="text-2xl md:text-4xl font-black" style="color:${t.color}">${t.score}</div>
+      </div>
+      <div class="podium-col w-full rounded-t-3xl border-4 border-b-0 flex flex-col items-center justify-start pt-3 relative overflow-hidden"
+           style="height:${heights[i]};background:linear-gradient(180deg,${t.color}55,${t.color}11);border-color:${t.color};animation-delay:${i * 220}ms">
+        <div class="sweep"></div>
+        <div class="text-4xl md:text-6xl">${medals[i]}</div>
+        <div class="text-xs md:text-base font-black uppercase tracking-widest text-white/80 mt-1">${places[i]}</div>
+        <div class="text-[10px] md:text-sm font-bold text-white/60 mt-1">${t.correct}/${t.answered} correct</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  $("podiumRest").innerHTML = ranked.slice(3).map((t, i) => `
+    <div class="bg-slate-900/90 border-2 border-slate-800 rounded-2xl p-4 flex items-center gap-4">
+      <span class="text-xl font-black text-slate-500 w-8 text-center">${i + 4}</span>
+      <span class="text-3xl">${t.emoji}</span>
+      <span class="flex-grow font-black text-white text-lg truncate">${esc(t.name)}</span>
+      <span class="text-sm text-slate-400 font-bold">${t.correct}/${t.answered}</span>
+      <span class="text-2xl font-black" style="color:${t.color}">${t.score}</span>
+    </div>`).join("");
+
+  const totalQ = S.queue.length;
+  const totalCorrect = S.teams.reduce((s, t) => s + t.correct, 0);
+  const bestStreakTeam = S.teams.slice().sort((a, b) => b.best - a.best)[0];
+  const challengeQs = S.queue.filter(q => q.hard).length;
+  const acc = totalQ ? Math.round(totalCorrect / totalQ * 100) : 0;
+  const stat = (icon, value, label, color) => `
+    <div class="bg-slate-900/90 border-2 border-slate-800 rounded-2xl p-4 text-center">
+      <div class="text-2xl md:text-3xl">${icon}</div>
+      <div class="text-2xl md:text-3xl font-black mt-1" style="color:${color}">${value}</div>
+      <div class="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-500">${label}</div>
+    </div>`;
+  $("podiumStats").innerHTML =
+    stat("❓", totalQ, "questions played", "#38bdf8") +
+    stat("✅", totalCorrect, "correct answers", "#10b981") +
+    stat("🎯", acc + "%", "class accuracy", "#f59e0b") +
+    stat("⭐", challengeQs, "B2 challenges", "#fbbf24");
+
+  showScreen("screenPodium");
+  sfx.fanfare();
+  confetti([ranked[0].color, "#fbbf24", "#ffffff", "#34d399", "#f43f5e"], 200, .3);
+  setTimeout(() => confetti(["#fbbf24", "#ffffff", ranked[0].color], 150, .25), 800);
+  setTimeout(() => confetti(["#fbbf24", "#34d399", "#38bdf8"], 150, .2), 1700);
+}
+
+function playAgain() { sfx.click(); startGame(); }
+function quitGame() {
+  if (!confirm("Quit this game and go back to the setup screen?")) return;
+  stopTimer(); clearInterval(S.countdownTimer); goHome();
+}
+function goHome() {
+  stopTimer(); clearInterval(S.countdownTimer);
+  updatePool(); showScreen("screenSetup");
+}
+
+/* ============================================================== KEYBOARD */
+document.addEventListener("keydown", e => {
+  if ($("wordListModal").classList.contains("open")) { if (e.key === "Escape") closeWordList(); return; }
+  const onQ = $("screenQuestion").classList.contains("active");
+  const q = S.queue[S.index];
+  if (onQ && !S.answered && q) {
+    if (q.format === "mcq" && ["1","2","3","4"].includes(e.key)) {
+      const i = parseInt(e.key, 10) - 1;
+      if (i < q.opts.length) { e.preventDefault(); answerMCQ(i); }
+      return;
+    }
+    if (isTyped(q.format)) {
+      if (/^[a-zA-Z-]$/.test(e.key)) { e.preventDefault(); gapType(e.key.toUpperCase()); return; }
+      if (e.key === "Backspace") { e.preventDefault(); gapBack(); return; }
+      if (e.key === "Enter") { e.preventDefault(); checkGap(); return; }
+    }
+    if (q.format === "scramble") {
+      if (/^[a-zA-Z-]$/.test(e.key)) {
+        const c = e.key.toUpperCase();
+        const idx = S.scrambleLetters.findIndex((l, i) => l === c && !S.scrambleUsed[i]);
+        if (idx > -1) { e.preventDefault(); placeTile(idx); }
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        const last = S.scrambleSlots.map((c, i) => c ? i : -1).filter(i => i > -1).pop();
+        if (last !== undefined) removeTile(last);
+        return;
+      }
+      if (e.key === "Enter") { e.preventDefault(); checkScramble(); return; }
+    }
+  }
+  if (e.key === " " || e.key === "Enter") {
+    if (onQ && S.answered) { e.preventDefault(); afterQuestion(); }
+    else if ($("screenTurn").classList.contains("active")) { e.preventDefault(); beginQuestion(); }
+    else if ($("screenScores").classList.contains("active")) { e.preventDefault(); nextRound(); }
+  }
+});
+
+/* ================================================================== INIT */
+try { speechSynthesis.onvoiceschanged = () => { loadVoices(); renderFormats(); renderVoicePicker(); }; loadVoices(); } catch (e) {}
+buildTeams();
+renderTeamCount();
+renderTeamNames();
+renderDifficulty();
+renderTopics();
+renderFormats();
+renderVoicePicker();
+renderChallenge();
+renderCustomMode();
+setRounds(8);
+updatePool();
+</script>
+</body>
+</html>
