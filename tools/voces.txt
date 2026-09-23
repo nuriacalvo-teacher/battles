@@ -1,0 +1,9 @@
+# Voz con la que se dictan las palabras del reto "Listen & write".
+#
+# Para cambiarla:
+#   1. Haz doble clic en COMPARAR-VOCES.command y escucha la comparativa.
+#   2. Escribe aqui el nombre completo de la que mas te guste.
+#   3. Haz doble clic en GRABAR-AUDIOS.command con la opcion --force,
+#      o borra antes la carpeta audio/.
+
+voz = en-GB-SoniaNeural

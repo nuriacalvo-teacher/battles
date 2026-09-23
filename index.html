@@ -307,14 +307,15 @@
       <p class="text-sm text-slate-400 leading-snug"><i class="fa-solid fa-circle-info text-sky-400 mr-1"></i> Everything except multiple choice is written on the board and scores <strong class="text-slate-300">+1 extra point</strong>. An on-screen keyboard appears, so no physical keyboard is needed. <strong class="text-slate-300">Listen &amp; write</strong> reads the word out loud (the music stops so the class can hear it).</p>
       <div id="voiceBox" class="hidden bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2">
         <p class="text-sm font-black text-slate-300 uppercase tracking-widest"><i class="fa-solid fa-microphone-lines text-emerald-400 mr-1"></i> Reading voice</p>
-        <div class="flex flex-col sm:flex-row gap-2">
+        <p id="voiceNote" class="hidden text-xs text-slate-300 leading-snug"></p>
+        <div id="voiceRow" class="flex flex-col sm:flex-row gap-2">
           <select id="voiceSelect" onchange="setVoice(this.value)"
             class="flex-grow min-w-0 bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 text-sm md:text-base text-white focus:outline-none focus:border-emerald-500"></select>
           <button onclick="testVoice()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 rounded-xl transition whitespace-nowrap">
             <i class="fa-solid fa-play mr-1"></i> Hear it
           </button>
         </div>
-        <p class="text-xs text-slate-500 leading-snug">Pick the voice that sounds most human on this computer and try it before the lesson. Voices with “Natural”, “Neural” or “Google” in the name are the good ones; “eSpeak” or “Compact” are the tinny robots.</p>
+        <p id="voiceHelp" class="text-xs text-slate-500 leading-snug">Pick the voice that sounds most human on this computer and try it before the lesson. Voices with “Natural”, “Neural” or “Google” in the name are the good ones; “eSpeak” or “Compact” are the tinny robots.</p>
       </div>
 
       <button onclick="openWordList()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-100 font-black text-base md:text-lg py-4 rounded-2xl transition flex items-center justify-center gap-3">
@@ -757,6 +758,44 @@ const VOWELS = "AEIOU";
    voices) really do sound like a tin robot, so we rank them and let the
    teacher pick and preview another one before the lesson. */
 let VOICE = null, VOICES = [];
+
+/* --- audio grabado ------------------------------------------------------
+   Si existe audio/manifest.json, las palabras del banco se reproducen desde
+   ficheros MP3 grabados con voces neuronales britanicas. Asi suenan igual en
+   cualquier aparato, incluidos los equipos Linux del aula, que normalmente no
+   traen ninguna voz instalada. Las palabras que el profesor escribe a mano no
+   estan grabadas: esas siguen usando la voz del navegador.
+   Se graban con tools/build_words.py (ver tools/README.md). */
+const AUDIO_DIR = "audio/";
+let WORD_AUDIO = null, wordAudioEl = null;
+function loadWordAudio() {
+  if (WORD_AUDIO !== null || typeof fetch === "undefined") return;
+  WORD_AUDIO = {};
+  try {
+    fetch(AUDIO_DIR + "manifest.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (j && j.words) {
+          WORD_AUDIO = j.words;
+          renderVoicePicker(); renderFormats();
+        }
+      })
+      .catch(() => {});
+  } catch (e) {}
+}
+function wordKey(w) { return String(w || "").trim().toLowerCase(); }
+function recordedWord(w) { return (WORD_AUDIO && WORD_AUDIO[wordKey(w)]) || null; }
+function recordingsAvailable() { return !!(WORD_AUDIO && Object.keys(WORD_AUDIO).length); }
+/* una palabra concreta se puede dictar si esta grabada o si hay voz instalada */
+function canSpeak(w) { return !!recordedWord(w) || speechReady(); }
+/* el reto "Listen & write" se puede ofrecer si hay grabaciones o hay voz */
+function listenReady() { return recordingsAvailable() || speechReady(); }
+function stopWordAudio() {
+  if (wordAudioEl) {
+    try { wordAudioEl.pause(); wordAudioEl.onerror = null; wordAudioEl.removeAttribute("src"); wordAudioEl.load(); } catch (e) {}
+    wordAudioEl = null;
+  }
+}
 function voiceScore(v) {
   const n = (v.name || "").toLowerCase(), l = (v.lang || "").toLowerCase();
   let s = 0;
@@ -779,6 +818,24 @@ function loadVoices() {
 function speechReady() { return typeof speechSynthesis !== "undefined" && !!(VOICE || loadVoices()); }
 const CARRIERS = ["Listen carefully.", "Here is your word.", "Are you ready?", "Your word is:"];
 function speakWord(w, plain) {
+  const rec = recordedWord(w);
+  const file = rec && (plain ? rec.s : rec.f);
+  if (file) { playWordFile(AUDIO_DIR + file, w, plain); return; }
+  speakWithBrowser(w, plain);
+}
+function playWordFile(src, w, plain) {
+  try { speechSynthesis.cancel(); } catch (e) {}
+  stopWordAudio();
+  const el = new Audio(src);
+  wordAudioEl = el;
+  /* si la grabacion no carga, no dejamos al alumno sin dictado */
+  const falla = () => { if (wordAudioEl === el) { wordAudioEl = null; speakWithBrowser(w, plain); } };
+  el.onerror = falla;
+  let p;
+  try { p = el.play(); } catch (e) { falla(); return; }
+  if (p && p.catch) p.catch(falla);
+}
+function speakWithBrowser(w, plain) {
   try {
     speechSynthesis.cancel();
     if (!VOICE) loadVoices();
@@ -786,7 +843,10 @@ function speakWord(w, plain) {
     // phrase plus a repeat gives the engine something to put a rhythm on
     const text = plain ? w : `${CARRIERS[Math.floor(Math.random() * CARRIERS.length)]} ${w}. ${w}.`;
     const u = new SpeechSynthesisUtterance(text);
-    if (VOICE) { u.voice = VOICE; u.lang = VOICE.lang; } else u.lang = "en-GB";
+    /* si el motor rechaza la voz elegida, seguimos con la de por defecto
+       antes que dejar al alumno sin dictado */
+    try { if (VOICE) { u.voice = VOICE; u.lang = VOICE.lang; } else u.lang = "en-GB"; }
+    catch (e) { u.lang = "en-GB"; }
     u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
     speechSynthesis.speak(u);
   } catch (e) {}
@@ -1093,7 +1153,7 @@ function setChallenge(v) { S.challengeEvery = v; renderChallenge(); updatePool()
 
 function renderFormats() {
   $("formatPicker").innerHTML = Object.entries(FORMATS).map(([k, f]) => {
-    const off = k === "listen" && !speechReady();
+    const off = k === "listen" && !listenReady();
     const on = S.formats.includes(k) && !off;
     return `
     <button onclick="toggleFormat('${k}')" class="pick ${on ? "on" : ""} ${off ? "opacity-40" : ""} py-4 px-2 text-center">
@@ -1104,7 +1164,25 @@ function renderFormats() {
   }).join("");
 }
 function renderVoicePicker() {
-  const box = $("voiceBox");
+  const box = $("voiceBox"); if (!box) return;
+  const nota = $("voiceNote"), fila = $("voiceRow"), ayuda = $("voiceHelp");
+  /* Con audio grabado no hay nada que elegir: suena igual en todos los equipos. */
+  if (recordingsAvailable()) {
+    box.classList.remove("hidden");
+    if (fila) fila.classList.add("hidden");
+    if (ayuda) ayuda.classList.add("hidden");
+    if (nota) {
+      nota.classList.remove("hidden");
+      nota.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Las palabras del banco estan grabadas: suenan igual en cualquier ordenador, tablet o movil. ' +
+        (speechReady()
+          ? 'Las palabras que escribas tu se leeran con la voz de este equipo.'
+          : 'Ojo: las palabras que escribas tu no se podran dictar en este equipo, porque no tiene ninguna voz instalada.');
+    }
+    return;
+  }
+  if (nota) nota.classList.add("hidden");
+  if (fila) fila.classList.remove("hidden");
+  if (ayuda) ayuda.classList.remove("hidden");
   if (!speechReady() || !VOICES.length) { box.classList.add("hidden"); return; }
   box.classList.remove("hidden");
   $("voiceSelect").innerHTML = VOICES.map(v =>
@@ -1118,7 +1196,7 @@ function setVoice(name) {
 function testVoice() { speakWord("Listen and write the word: champion.", true); }
 
 function toggleFormat(k) {
-  if (k === "listen" && !speechReady()) return;
+  if (k === "listen" && !listenReady()) return;
   const next = S.formats.includes(k) ? S.formats.filter(x => x !== k) : S.formats.concat(k);
   if (!next.length) return;
   S.formats = next; renderFormats(); renderVoicePicker(); parseCustomWords(); sfx.click();
@@ -1301,7 +1379,7 @@ function formatsFor(word) {
     gap:      one && n >= 3 && n <= 12,
     scramble: one && n >= 3 && n <= 9,                       // longer anagrams don't fit in 10 seconds
     vowels:   one && n >= 3 && n <= 12 && /[aeiou]/i.test(word),
-    listen:   one && n >= 3 && n <= 12 && speechReady()
+    listen:   one && n >= 3 && n <= 12 && canSpeak(word)
   };
 }
 
@@ -1598,7 +1676,7 @@ function tickTimer() {
   if (left <= 0) { timeUp(); return; }
   S.timer = requestAnimationFrame(tickTimer);
 }
-function stopTimer() { cancelAnimationFrame(S.timer); tense = false; stopMusic(); try { speechSynthesis.cancel(); } catch (e) {} }
+function stopTimer() { cancelAnimationFrame(S.timer); tense = false; stopMusic(); stopWordAudio(); try { speechSynthesis.cancel(); } catch (e) {} }
 
 /* ============================================================== SCORING */
 function resolve(ok) {
@@ -1826,6 +1904,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ================================================================== INIT */
+loadWordAudio();
 try { speechSynthesis.onvoiceschanged = () => { loadVoices(); renderFormats(); renderVoicePicker(); }; loadVoices(); } catch (e) {}
 buildTeams();
 renderTeamCount();
