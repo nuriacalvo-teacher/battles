@@ -229,7 +229,8 @@
           <p class="text-sm text-slate-400">Tap to switch topics on and off.</p>
         </div>
       </div>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap gap-2">
+        <button id="teacherBtn" onclick="toggleTeacher()" class="chip" title="Teacher mode: add, edit or delete topics for everyone"><i class="fa-solid fa-chalkboard-user mr-1"></i> <span id="teacherBtnLabel">Teacher</span></button>
         <button onclick="selectAllTopics(true)" class="chip"><i class="fa-solid fa-check-double mr-1"></i> All</button>
         <button onclick="selectAllTopics(false)" class="chip"><i class="fa-solid fa-xmark mr-1"></i> None</button>
       </div>
@@ -237,22 +238,10 @@
 
     <div class="flex flex-wrap gap-2" id="topicPicker"></div>
     <p id="topicsOffNote" class="hidden text-sm md:text-base font-bold text-amber-300 bg-amber-950/30 border border-amber-500/40 rounded-2xl px-4 py-3">
-      🔒 The book topics are switched off — this game uses <strong>only your own vocabulary</strong> (the list below + the saved topics you switch on).
+      🔒 The book topics are switched off — this game uses <strong>only your own vocabulary list</strong>.
     </p>
 
-    <!-- SAVED (TEACHER-MADE) TOPICS -->
-    <div id="savedTopicsBox" class="space-y-2">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p class="text-sm font-black text-slate-300 uppercase tracking-widest"><i class="fa-solid fa-floppy-disk text-sky-400 mr-1"></i> My saved topics</p>
-        <div class="flex flex-wrap gap-2">
-          <button onclick="exportSavedTopics()" class="chip" title="Download a file with all your saved topics (to use them on another computer)"><i class="fa-solid fa-file-export mr-1"></i> Export</button>
-          <button onclick="$('importTopicsFile').click()" class="chip" title="Load topics from a file exported before"><i class="fa-solid fa-file-import mr-1"></i> Import</button>
-          <input id="importTopicsFile" type="file" accept=".json,application/json" class="hidden" onchange="importSavedTopics(this)">
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2" id="savedTopicPicker"></div>
-      <p id="savedTopicsHelp" class="text-xs text-slate-500 leading-snug"></p>
-    </div>
+    <p id="classTopicsHelp" class="hidden text-sm text-sky-200 bg-sky-950/30 border border-sky-500/30 rounded-2xl px-4 py-3 leading-snug"></p>
 
     <!-- CUSTOM WORDS -->
     <div class="border-t border-slate-800 pt-5 space-y-3">
@@ -285,23 +274,23 @@
           class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl px-5 py-4 text-base md:text-lg text-white focus:outline-none focus:border-emerald-500 transition font-mono"></textarea>
         <p id="customStatus" class="text-sm font-bold text-slate-400"></p>
 
-        <!-- save the list as a topic -->
-        <div class="bg-slate-950/70 border-2 border-sky-500/30 rounded-2xl p-4 space-y-3">
-          <p class="font-black text-sky-300 text-sm md:text-base"><i class="fa-solid fa-floppy-disk mr-1"></i> <span id="saveTopicTitle">Save this list as a topic to use it again</span></p>
+        <!-- teacher mode: save the list as a topic for everyone -->
+        <div id="saveTopicBox" class="hidden bg-slate-950/70 border-2 border-sky-500/30 rounded-2xl p-4 space-y-3">
+          <p class="font-black text-sky-300 text-sm md:text-base"><i class="fa-solid fa-floppy-disk mr-1"></i> <span id="saveTopicTitle"></span></p>
           <div class="flex flex-col sm:flex-row gap-2">
             <input id="saveTopicEmoji" maxlength="4" placeholder="👗" title="Emoji (optional)"
               class="w-full sm:w-20 bg-slate-950 border-2 border-slate-800 rounded-xl px-3 py-3 text-xl text-center text-white focus:outline-none focus:border-sky-500">
             <input id="saveTopicName" maxlength="40" placeholder="Topic name, e.g. Fashion"
               onkeydown="if(event.key==='Enter') saveCustomTopic()"
               class="flex-grow min-w-0 bg-slate-950 border-2 border-slate-800 rounded-xl px-4 py-3 text-base md:text-lg text-white focus:outline-none focus:border-sky-500">
-            <button onclick="saveCustomTopic()" class="bg-sky-600 hover:bg-sky-500 text-white font-black px-5 py-3 rounded-xl transition whitespace-nowrap">
-              <i class="fa-solid fa-floppy-disk mr-1"></i> <span id="saveTopicBtnLabel">Save topic</span>
+            <button id="saveTopicBtn" onclick="saveCustomTopic()" class="bg-sky-600 hover:bg-sky-500 text-white font-black px-5 py-3 rounded-xl transition whitespace-nowrap">
+              <i class="fa-solid fa-floppy-disk mr-1"></i> <span id="saveTopicBtnLabel">Save for everyone</span>
             </button>
             <button id="cancelEditBtn" onclick="cancelTopicEdit()" class="hidden bg-slate-800 hover:bg-slate-700 text-slate-200 font-black px-4 py-3 rounded-xl transition whitespace-nowrap">
               Cancel
             </button>
           </div>
-          <p id="saveTopicStatus" class="text-xs md:text-sm font-bold text-slate-500">It's saved in this browser and appears with the other topics under “My saved topics”, where you can switch it on and off like any other.</p>
+          <p id="saveTopicStatus" class="text-xs md:text-sm font-bold text-slate-500"></p>
         </div>
       </div>
     </div>
@@ -521,6 +510,32 @@
       </div>
     </div>
     <div id="wordListBody" class="space-y-6 max-h-[70vh] overflow-auto pr-2"></div>
+  </div>
+</div>
+
+<!-- ============================ PUBLISH MODAL ============================ -->
+<div id="publishModal" class="modal-back items-start justify-center p-4 md:p-10 overflow-auto" onclick="if(event.target===this) closePublish()">
+  <div class="bg-slate-900 border-2 border-sky-500/40 rounded-3xl max-w-2xl w-full p-6 md:p-8 space-y-4">
+    <div class="flex justify-between items-start gap-4">
+      <h3 class="text-2xl md:text-3xl font-black text-white"><i class="fa-brands fa-github text-sky-400 mr-2"></i>Last step: save it in GitHub</h3>
+      <button onclick="closePublish()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-black px-4 py-3 rounded-xl"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p id="publishCopied" class="text-emerald-300 font-bold text-sm md:text-base"><i class="fa-solid fa-circle-check mr-1"></i> The new list of topics is already copied.</p>
+    <p id="publishNotCopied" class="hidden text-amber-300 font-bold text-sm md:text-base"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Press “Copy” first (the browser didn't let the page copy it by itself).</p>
+    <ol class="list-decimal pl-6 space-y-2 text-slate-200 text-sm md:text-base leading-snug">
+      <li>Press <strong>Open GitHub</strong> (sign in with your GitHub account if it asks).</li>
+      <li>Click inside the text, select everything with <kbd class="bg-slate-800 px-2 py-0.5 rounded font-black">Ctrl</kbd>+<kbd class="bg-slate-800 px-2 py-0.5 rounded font-black">A</kbd> and paste with <kbd class="bg-slate-800 px-2 py-0.5 rounded font-black">Ctrl</kbd>+<kbd class="bg-slate-800 px-2 py-0.5 rounded font-black">V</kbd>.</li>
+      <li>Press the green <strong>Commit changes…</strong> button, and <strong>Commit changes</strong> again in the window that opens.</li>
+    </ol>
+    <p id="publishDone" class="text-slate-400 text-sm"></p>
+    <div class="flex flex-col sm:flex-row gap-2">
+      <button onclick="openGitHubEditor()" class="flex-grow bg-sky-600 hover:bg-sky-500 text-white font-black py-3 px-5 rounded-xl transition"><i class="fa-brands fa-github mr-1"></i> Open GitHub</button>
+      <button onclick="copyPublishJson()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 font-black py-3 px-5 rounded-xl transition"><i class="fa-solid fa-copy mr-1"></i> Copy again</button>
+    </div>
+    <details class="text-slate-400 text-xs">
+      <summary class="cursor-pointer">See the text that gets pasted</summary>
+      <textarea id="publishJson" rows="8" readonly class="mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-300"></textarea>
+    </details>
   </div>
 </div>
 
@@ -1148,13 +1163,13 @@ function renderTopics() {
   $("topicPicker").innerHTML = TOPICS.map(t => `
     <button onclick="toggleTopic('${t.id}')" class="chip ${S.topics.includes(t.id) ? "on" : ""}">
       <span class="mr-1">${t.emoji}</span>${esc(t.name)}
-    </button>`).join("");
+    </button>`).join("") + classTopicChips();
 }
 function toggleTopic(id) {
   S.topics = S.topics.includes(id) ? S.topics.filter(x => x !== id) : S.topics.concat(id);
-  storeTopicSelection(); renderTopics(); renderSavedTopics(); updatePool(); sfx.click();
+  storeTopicSelection(); renderTopics(); updatePool(); sfx.click();
 }
-function selectAllTopics(all) { S.topics = all ? allTopicIds() : []; storeTopicSelection(); renderTopics(); renderSavedTopics(); updatePool(); sfx.click(); }
+function selectAllTopics(all) { S.topics = all ? allTopicIds() : []; storeTopicSelection(); renderTopics(); updatePool(); sfx.click(); }
 
 function challengeRounds() {
   const every = S.challengeEvery, rs = [];
@@ -1351,116 +1366,197 @@ function parseCustomWords() {
   updatePool();
 }
 
-/* ------------------------------------------------- teacher's saved topics
-   A pasted list can be saved under a name ("Fashion", "Unit 3"...) and then it shows up
-   next to the book topics and switches on and off like them. Everything is kept in this
-   browser (localStorage); Export / Import moves the topics to another computer. */
-const SAVED_KEY = "vocabBattle.savedTopics", OFF_KEY = "vocabBattle.topicsOff";
-const SAVED_COLORS = ["#38bdf8", "#f472b6", "#a78bfa", "#fb923c", "#2dd4bf", "#facc15", "#f87171", "#4ade80"];
-let SAVED = [];
-let storageOk = true;
+/* -------------------------------------------------------- class topics
+   The teacher's own topics live in topics.json, in the GitHub repository of the game, so
+   everybody who opens the page (in class or at home) gets them next to the book topics.
+   The page never writes to GitHub itself: in teacher mode "Save for everyone" copies the
+   new topics.json and opens GitHub's editor for that file, where the teacher pastes it and
+   commits with her own GitHub account. Students can't commit, so they can't change it. */
+const GH = { repo:"nuriacalvo-teacher/battles", branch:"main", file:"topics.json" };
+const GH_EDIT_URL = `https://github.com/${GH.repo}/edit/${GH.branch}/${GH.file}`;
+const GH_API_URL  = `https://api.github.com/repos/${GH.repo}/contents/${GH.file}?ref=${GH.branch}`;
+const OFF_KEY = "vocabBattle.topicsOff", TEACHER_KEY = "vocabBattle.teacher", OLD_LOCAL_KEY = "vocabBattle.savedTopics";
+const CLASS_COLORS = ["#38bdf8", "#f472b6", "#a78bfa", "#fb923c", "#2dd4bf", "#facc15", "#f87171", "#4ade80"];
+let CLASS = [];          // [{ id, name, emoji, text, color }]
+let classLoaded = false;
 
-const allTopicIds = () => TOPICS.map(t => t.id).concat(SAVED.map(t => t.id));
-const newTopicId = () => "my-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const allTopicIds = () => TOPICS.map(t => t.id).concat(CLASS.map(t => t.id));
 const lineCount = text => String(text || "").split("\n").filter(l => l.trim()).length;
-const nextColor = () => SAVED_COLORS[SAVED.length % SAVED_COLORS.length];
+const slug = name => "class-" + (String(name).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || Date.now().toString(36));
+const isTeacher = () => { try { return localStorage.getItem(TEACHER_KEY) === "1"; } catch (e) { return false; } };
 
-function loadSavedTopics() {
-  try {
-    const list = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
-    SAVED = Array.isArray(list) ? list.filter(t => t && t.id && t.name && typeof t.text === "string") : [];
-  } catch (e) { SAVED = []; storageOk = false; }
-  SAVED.forEach((t, i) => { if (!t.color) t.color = SAVED_COLORS[i % SAVED_COLORS.length]; if (!t.emoji) t.emoji = "📝"; });
-  let off = [];
-  try { off = JSON.parse(localStorage.getItem(OFF_KEY) || "[]"); } catch (e) {}
-  if (!Array.isArray(off)) off = [];
-  S.topics = allTopicIds().filter(id => !off.includes(id));
+function cleanTopics(list) {
+  return (Array.isArray(list) ? list : [])
+    .filter(t => t && typeof t.name === "string" && t.name.trim() && typeof t.text === "string")
+    .map(t => ({ id: String(t.id || slug(t.name)), name: t.name.trim().slice(0, 40), emoji: String(t.emoji || "📝").slice(0, 4), text: t.text }));
 }
-function storeSavedTopics() {
-  try {
-    localStorage.setItem(SAVED_KEY, JSON.stringify(SAVED.map(({ id, name, emoji, color, text }) => ({ id, name, emoji, color, text }))));
-    storageOk = true;
-  } catch (e) { storageOk = false; }
-  return storageOk;
+function setClassTopics(list) {
+  CLASS = cleanTopics(list).map((t, i) => ({ ...t, color: CLASS_COLORS[i % CLASS_COLORS.length] }));
+}
+function readOff() {
+  try { const off = JSON.parse(localStorage.getItem(OFF_KEY) || "[]"); return Array.isArray(off) ? off : []; } catch (e) { return []; }
 }
 function storeTopicSelection() {
-  try { localStorage.setItem(OFF_KEY, JSON.stringify(allTopicIds().filter(id => !S.topics.includes(id)))); } catch (e) {}
+  // keep the "off" marks of class topics that are not loaded yet
+  const known = allTopicIds();
+  const off = readOff().filter(id => !known.includes(id)).concat(known.filter(id => !S.topics.includes(id)));
+  try { localStorage.setItem(OFF_KEY, JSON.stringify(off)); } catch (e) {}
 }
 
-/* saved topics that are switched on (the one being edited is left out: its words are in the box) */
-const savedOn = () => SAVED.filter(t => S.topics.includes(t.id) && t.id !== S.editingId);
-function savedQuestions(t) {
+/* students get the copy published on the web; the teacher reads the very latest one
+   from GitHub (the web copy can take a few minutes to update after a change) */
+async function fetchClassTopics(fresh) {
+  if (fresh) {
+    try {
+      const r = await fetch(GH_API_URL, { cache:"no-store" });
+      if (r.ok) {
+        const j = await r.json();
+        const txt = new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\s/g, "")), c => c.charCodeAt(0)));
+        return JSON.parse(txt).topics;
+      }
+      if (r.status === 404) return [];
+    } catch (e) {}
+  }
+  const r = await fetch(GH.file + "?t=" + Date.now(), { cache:"no-cache" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return (await r.json()).topics;
+}
+async function loadClassTopics() {
+  try { setClassTopics(await fetchClassTopics(isTeacher())); classLoaded = true; }
+  catch (e) { classLoaded = false; }
+  const off = readOff();
+  CLASS.forEach(t => { if (!off.includes(t.id) && !S.topics.includes(t.id)) S.topics = S.topics.concat(t.id); });
+  renderTopics(); renderTeacher(); updatePool();
+}
+
+/* class topics that are switched on (the one being edited is left out: its words are in the box) */
+const classOn = () => CLASS.filter(t => S.topics.includes(t.id) && t.id !== S.editingId);
+function classQuestions(t) {
   const { built } = buildCustom(t.text, { name: t.name, emoji: t.emoji, color: t.color });
   return { core: built.filter(q => !q.hardFlag), hard: built.filter(q => q.hardFlag) };
 }
-
-function renderSavedTopics() {
-  const box = $("savedTopicPicker"); if (!box) return;
-  box.innerHTML = SAVED.map(t => {
+function classTopicChips() {
+  const teacher = isTeacher();
+  return CLASS.map(t => {
     const on = S.topics.includes(t.id), editing = t.id === S.editingId;
     return `<span class="inline-flex items-center gap-1 ${editing ? "opacity-50" : ""}">
       <button onclick="toggleTopic('${t.id}')" class="chip ${on ? "on" : ""}" ${on ? `style="border-color:${t.color};color:${t.color};background:${t.color}22"` : ""}>
-        <span class="mr-1">${esc(t.emoji)}</span>${esc(t.name)} <span class="text-[11px] opacity-70">· ${lineCount(t.text)}</span>
-      </button>
-      <button onclick="editSavedTopic('${t.id}')" class="chip" style="padding:8px 11px" title="Edit"><i class="fa-solid fa-pen"></i></button>
-      <button onclick="deleteSavedTopic('${t.id}')" class="chip" style="padding:8px 11px" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+        <span class="mr-1">${esc(t.emoji)}</span>${esc(t.name)}
+      </button>${teacher ? `
+      <button onclick="editClassTopic('${t.id}')" class="chip" style="padding:8px 11px" title="Edit"><i class="fa-solid fa-pen"></i></button>
+      <button onclick="deleteClassTopic('${t.id}')" class="chip" style="padding:8px 11px" title="Delete"><i class="fa-solid fa-trash-can"></i></button>` : ""}
     </span>`;
   }).join("");
-  $("savedTopicsHelp").innerHTML = !storageOk
-    ? "⚠️ This browser is not letting the page save anything (private window?). Use <strong>Export</strong> to keep a copy of your topics in a file."
-    : SAVED.length
-      ? "Tap a topic to switch it on/off · <i class='fa-solid fa-pen'></i> edit · <i class='fa-solid fa-trash-can'></i> delete. They are saved in this browser — use <strong>Export</strong> to take them to another computer (e.g. the classroom board) and <strong>Import</strong> there."
-      : "No saved topics yet. Open “Add your own vocabulary list” below, paste your words, give the list a name and press <strong>Save topic</strong>.";
+}
+
+/* ------------------------------------------------------------ teacher mode */
+function toggleTeacher() {
+  const on = !isTeacher();
+  try { on ? localStorage.setItem(TEACHER_KEY, "1") : localStorage.removeItem(TEACHER_KEY); } catch (e) {}
+  if (!on) S.editingId = null;
+  if (on && $("customBox").classList.contains("hidden")) toggleCustomBox();
+  renderTopics(); renderTeacher(); sfx.click();
+  if (on) loadClassTopics();
+}
+function renderTeacher() {
+  const on = isTeacher();
+  $("teacherBtn").classList.toggle("on", on);
+  $("teacherBtnLabel").textContent = on ? "Teacher mode ✓" : "Teacher";
+  $("saveTopicBox").classList.toggle("hidden", !on);
+  const help = $("classTopicsHelp");
+  help.classList.toggle("hidden", !on);
+  if (on) {
+    const old = oldLocalTopics().filter(o => !CLASS.some(t => t.name.toLowerCase() === o.name.toLowerCase()));
+    help.innerHTML = `👩‍🏫 <strong>Teacher mode</strong> · to add a topic for everyone, type the words in “Add your own vocabulary list” below, give it a name and press <strong>Save for everyone</strong>. Your topics show <i class="fa-solid fa-pen"></i> edit and <i class="fa-solid fa-trash-can"></i> delete.` +
+      (classLoaded ? "" : `<br><span class="text-amber-300">⚠️ Could not read the class topics from the web right now — check the internet connection before saving.</span>`) +
+      (old.length ? `<br><span class="text-amber-300">This computer still has ${old.length} topic${old.length > 1 ? "s" : ""} saved only here (${old.map(o => esc(o.name)).join(", ")}).</span>
+        <button onclick="publishOldLocal()" class="chip ml-1" style="padding:4px 12px">Save ${old.length > 1 ? "them" : "it"} for everyone</button>` : "");
+  }
+  renderSaveForm();
 }
 
 function renderSaveForm() {
-  const t = S.editingId && SAVED.find(x => x.id === S.editingId);
-  $("saveTopicTitle").textContent = t ? `Editing “${t.name}” — change the words or the name and save` : "Save this list as a topic to use it again";
-  $("saveTopicBtnLabel").textContent = t ? "Save changes" : "Save topic";
+  const t = S.editingId && CLASS.find(x => x.id === S.editingId);
+  $("saveTopicTitle").textContent = t ? `Editing “${t.name}” — change the words or the name and save` : "Save this list as a topic for everyone (class and home)";
+  $("saveTopicBtnLabel").textContent = t ? "Save changes for everyone" : "Save for everyone";
   $("cancelEditBtn").classList.toggle("hidden", !t);
-  const st = $("saveTopicStatus");
-  st.textContent = "It's saved in this browser and appears with the other topics under “My saved topics”, where you can switch it on and off like any other.";
-  st.className = "text-xs md:text-sm font-bold text-slate-500";
 }
 function clearCustomBox() {
   S.editingId = null;
   $("customInput").value = ""; $("saveTopicName").value = ""; $("saveTopicEmoji").value = "";
-  renderSaveForm(); parseCustomWords(); renderSavedTopics();
+  renderSaveForm(); parseCustomWords(); renderTopics();
+}
+function saveStatus(html, tone) {
+  const st = $("saveTopicStatus");
+  st.innerHTML = html;
+  st.className = "text-xs md:text-sm font-bold " + ({ ok:"text-emerald-400", warn:"text-amber-400", bad:"text-rose-400" }[tone] || "text-slate-500");
 }
 
-function saveCustomTopic() {
+/* Build the new topics.json from the latest copy on GitHub plus `change`, put it on the
+   clipboard and open GitHub's editor so the teacher only has to paste and commit. */
+async function publishTopics(change, doneMsg) {
+  let latest;
+  try { latest = cleanTopics(await fetchClassTopics(true)); }
+  catch (e) { saveStatus("⚠️ Could not read the current topics from GitHub. Check the internet connection and try again.", "bad"); return false; }
+  const next = change(latest);
+  if (!next) return false;
+  const json = JSON.stringify({ topics: next.map(({ id, name, emoji, text }) => ({ id, name, emoji, text })) }, null, 2) + "\n";
+
+  let copied = false;
+  try { await navigator.clipboard.writeText(json); copied = true; } catch (e) {}
+  $("publishJson").value = json;
+  $("publishCopied").classList.toggle("hidden", !copied);
+  $("publishNotCopied").classList.toggle("hidden", copied);
+  $("publishDone").textContent = doneMsg;
+  $("publishModal").classList.add("open");
+
+  // show the change straight away on this computer (everyone else gets it once it's committed)
+  setClassTopics(next);
+  next.forEach(t => { if (!S.topics.includes(t.id) && !readOff().includes(t.id)) S.topics = S.topics.concat(t.id); });
+  return true;
+}
+function openGitHubEditor() { window.open(GH_EDIT_URL, "_blank", "noopener"); sfx.click(); }
+async function copyPublishJson() {
+  const box = $("publishJson");
+  try { await navigator.clipboard.writeText(box.value); }
+  catch (e) { box.select(); document.execCommand("copy"); }
+  $("publishCopied").classList.remove("hidden"); $("publishNotCopied").classList.add("hidden");
+  sfx.click();
+}
+function closePublish() { $("publishModal").classList.remove("open"); }
+
+async function saveCustomTopic() {
   const text = $("customInput").value.trim();
   const name = $("saveTopicName").value.trim();
   const emoji = $("saveTopicEmoji").value.trim() || "📝";
-  const st = $("saveTopicStatus");
-  const fail = msg => { st.innerHTML = msg; st.className = "text-xs md:text-sm font-bold text-rose-400"; sfx.click(); };
-  if (!text) return fail("⚠️ The list is empty — paste or type your words above first.");
-  if (!name) { $("saveTopicName").focus(); return fail("⚠️ Give the topic a name (e.g. Fashion)."); }
-  if (!buildCustom(text, { name, emoji, color:"#ffffff" }).built.length) return fail("⚠️ None of these lines can become a question — check the format above.");
+  if (!text) { sfx.click(); return saveStatus("⚠️ The list is empty — type or paste your words above first.", "bad"); }
+  if (!name) { sfx.click(); $("saveTopicName").focus(); return saveStatus("⚠️ Give the topic a name (e.g. Fashion).", "bad"); }
+  if (!buildCustom(text, { name, emoji, color:"#ffffff" }).built.length) return saveStatus("⚠️ None of these lines can become a question — check the format above.", "bad");
 
-  let t = S.editingId && SAVED.find(x => x.id === S.editingId);
-  const same = SAVED.find(x => x.name.toLowerCase() === name.toLowerCase() && x !== t);
-  if (same) {
-    if (!confirm(`You already have a topic called “${same.name}”. Replace it with this list?`)) return;
-    if (t) { SAVED = SAVED.filter(x => x !== t); S.topics = S.topics.filter(id => id !== t.id); }
-    t = same;
-  }
-  if (t) Object.assign(t, { name, emoji, text });
-  else { t = { id: newTopicId(), name, emoji, text, color: nextColor() }; SAVED.push(t); }
-  if (!S.topics.includes(t.id)) S.topics = S.topics.concat(t.id);
-  const stored = storeSavedTopics();
-  storeTopicSelection();
-
-  clearCustomBox();   // the words now live in the saved topic: empty the box so they don't count twice
-  st.innerHTML = stored
-    ? `✅ “${esc(name)}” saved and switched on. It will still be there next time under “My saved topics”.`
-    : `⚠️ “${esc(name)}” is in the game now, but this browser won't keep it after closing — use <strong>Export</strong> to save it in a file.`;
-  st.className = "text-xs md:text-sm font-bold " + (stored ? "text-emerald-400" : "text-amber-400");
-  sfx.click();
+  const editingId = S.editingId;
+  $("saveTopicBtn").disabled = true;
+  saveStatus("⏳ Preparing…");
+  const ok = await publishTopics(list => {
+    const same = list.find(x => x.name.toLowerCase() === name.toLowerCase() && x.id !== editingId);
+    if (same && !confirm(`There is already a topic called “${same.name}”. Replace it with this list?`)) return null;
+    let out = list.filter(x => x !== same);
+    const cur = out.find(x => x.id === editingId);
+    if (cur) Object.assign(cur, { name, emoji, text });
+    else out = out.concat({ id: same ? same.id : slug(name), name, emoji, text });
+    // ids must be unique
+    const seen = new Set();
+    out.forEach(t => { while (seen.has(t.id)) t.id += "-2"; seen.add(t.id); });
+    return out;
+  }, `“${name}” will be in the game for everyone (in class and at home) a few minutes after you commit.`);
+  $("saveTopicBtn").disabled = false;
+  if (!ok) { saveStatus(""); return; }
+  clearCustomBox();
+  saveStatus(`✅ “${esc(name)}” is ready — finish the 3 steps in GitHub (paste and commit) so everyone gets it.`, "ok");
+  renderTeacher(); updatePool(); sfx.click();
 }
 
-function editSavedTopic(id) {
-  const t = SAVED.find(x => x.id === id); if (!t) return;
+function editClassTopic(id) {
+  const t = CLASS.find(x => x.id === id); if (!t) return;
   if ($("customInput").value.trim() && S.editingId !== id &&
       !confirm(`The box already has a list that isn't saved. Replace it with “${t.name}”?`)) return;
   S.editingId = id;
@@ -1468,64 +1564,56 @@ function editSavedTopic(id) {
   $("saveTopicName").value = t.name;
   $("saveTopicEmoji").value = t.emoji;
   if ($("customBox").classList.contains("hidden")) toggleCustomBox();
-  renderSaveForm(); parseCustomWords(); renderSavedTopics();
+  saveStatus("");
+  renderSaveForm(); parseCustomWords(); renderTopics();
   $("customInput").scrollIntoView({ behavior:"smooth", block:"center" });
 }
-function cancelTopicEdit() { clearCustomBox(); sfx.click(); }
-function deleteSavedTopic(id) {
-  const t = SAVED.find(x => x.id === id); if (!t) return;
-  if (!confirm(`Delete the topic “${t.name}”? This can't be undone (unless you exported it).`)) return;
-  SAVED = SAVED.filter(x => x.id !== id);
+function cancelTopicEdit() { clearCustomBox(); saveStatus(""); sfx.click(); }
+async function deleteClassTopic(id) {
+  const t = CLASS.find(x => x.id === id); if (!t) return;
+  if (!confirm(`Delete the topic “${t.name}” for everyone?`)) return;
+  const ok = await publishTopics(list => list.filter(x => x.id !== id && x.name.toLowerCase() !== t.name.toLowerCase()),
+    `“${t.name}” will disappear for everyone a few minutes after you commit.`);
+  if (!ok) return;
   S.topics = S.topics.filter(x => x !== id);
-  storeSavedTopics(); storeTopicSelection();
   if (S.editingId === id) clearCustomBox();
-  renderSavedTopics(); updatePool(); sfx.click();
+  renderTopics(); renderTeacher(); updatePool(); sfx.click();
 }
 
-function exportSavedTopics() {
-  sfx.click();
-  if (!SAVED.length) { alert("There are no saved topics to export yet."); return; }
-  const data = { app:"vocab-battle", version:1, topics: SAVED.map(({ name, emoji, text }) => ({ name, emoji, text })) };
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type:"application/json" }));
-  a.download = "vocab-battle-topics-" + new Date().toISOString().slice(0, 10) + ".json";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+/* topics saved with the previous version of the page, which kept them only in this browser */
+function oldLocalTopics() {
+  try { return cleanTopics(JSON.parse(localStorage.getItem(OLD_LOCAL_KEY) || "[]")); } catch (e) { return []; }
 }
-function importSavedTopics(input) {
-  const file = input.files && input.files[0]; input.value = "";
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    let list;
-    try { const d = JSON.parse(reader.result); list = Array.isArray(d) ? d : d.topics; } catch (e) {}
-    list = (Array.isArray(list) ? list : []).filter(t => t && typeof t.name === "string" && t.name.trim() && typeof t.text === "string");
-    if (!list.length) { alert("That file doesn't contain any Vocab Battle topics."); return; }
-    let added = 0, replaced = 0;
-    list.forEach(n => {
-      const name = n.name.trim().slice(0, 40), emoji = String(n.emoji || "📝").slice(0, 4);
-      const old = SAVED.find(x => x.name.toLowerCase() === name.toLowerCase());
-      if (old) { Object.assign(old, { emoji, text: n.text }); replaced++; }
-      else { const t = { id: newTopicId(), name, emoji, text: n.text, color: nextColor() }; SAVED.push(t); S.topics = S.topics.concat(t.id); added++; }
+async function publishOldLocal() {
+  const old = oldLocalTopics();
+  const ok = await publishTopics(list => {
+    const out = list.slice();
+    old.forEach(o => {
+      const cur = out.find(x => x.name.toLowerCase() === o.name.toLowerCase());
+      if (cur) Object.assign(cur, { emoji: o.emoji, text: o.text });
+      else out.push({ id: slug(o.name), name: o.name, emoji: o.emoji, text: o.text });
     });
-    storeSavedTopics(); storeTopicSelection();
-    renderSavedTopics(); updatePool();
-    alert(`Imported: ${added} new topic${added === 1 ? "" : "s"}` + (replaced ? `, ${replaced} updated (same name)` : "") + ".");
-  };
-  reader.readAsText(file);
+    return out;
+  }, `${old.map(o => "“" + o.name + "”").join(", ")} will be in the game for everyone a few minutes after you commit.`);
+  if (!ok) return;
+  renderTopics(); renderTeacher(); updatePool();
 }
 
 const pick = list => TOPICS.filter(t => S.topics.includes(t.id));
 function corePool() {
   const pool = [];
-  if (!S.onlyCustom) pick().forEach(t => t.qs.forEach(q => pool.push({ topic:t.name, emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
-  savedOn().forEach(t => pool.push(...savedQuestions(t).core));
+  if (!S.onlyCustom) {
+    pick().forEach(t => t.qs.forEach(q => pool.push({ topic:t.name, emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
+    classOn().forEach(t => pool.push(...classQuestions(t).core));
+  }
   return pool.concat(S.customQs);
 }
 function hardPool() {
   const pool = [];
-  if (!S.onlyCustom) pick().forEach(t => t.hard.forEach(q => pool.push({ topic:t.name + " · B2", emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
-  savedOn().forEach(t => pool.push(...savedQuestions(t).hard));
+  if (!S.onlyCustom) {
+    pick().forEach(t => t.hard.forEach(q => pool.push({ topic:t.name + " · B2", emoji:q[2] || t.emoji, color:t.color, prompt:q[0], options:q[1], tip:q[3] })));
+    classOn().forEach(t => pool.push(...classQuestions(t).hard));
+  }
   return pool.concat(S.customHard);
 }
 
@@ -1544,7 +1632,7 @@ function updatePool() {
   } else {
     box.className = "rounded-2xl px-5 py-4 text-base md:text-lg font-bold border-2 border-rose-500/40 bg-rose-950/40 text-rose-300";
     box.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-2"></i> This game needs ${need} questions but only ${core + hard} are available. ` +
-      (S.onlyCustom ? "Paste more words, switch on more saved topics, play fewer rounds, or switch back to “My list + the book”."
+      (S.onlyCustom ? "Paste more words, play fewer rounds, or switch back to “My list + the book”."
                     : "Switch on more topics, paste your own word list, or play fewer rounds.");
     $("startBtn").disabled = true; $("startBtn").classList.add("opacity-40", "pointer-events-none");
   }
@@ -1555,7 +1643,8 @@ function openWordList() {
   sfx.click();
   const body = $("wordListBody");
   const sel = S.onlyCustom ? [] : pick();
-  body.innerHTML = (sel.length || savedOn().length ? sel : (S.onlyCustom ? [] : TOPICS)).map(t => {
+  const cls = S.onlyCustom ? [] : classOn();
+  body.innerHTML = (sel.length || cls.length ? sel : (S.onlyCustom ? [] : TOPICS)).map(t => {
     const core = [...new Set(t.qs.map(q => q[1][0]))];
     const hard = [...new Set(t.hard.map(q => q[1][0]))];
     return `<div class="space-y-2">
@@ -1569,8 +1658,8 @@ function openWordList() {
       <div class="flex flex-wrap gap-2">${[...new Set(S.customQs.map(q => q.options[0]))].map(w => `<span class="chip on">${esc(w)}</span>`).join("")}</div>
       ${S.customHard.length ? `<p class="text-sm font-black text-amber-300 uppercase tracking-widest pt-2">⭐ B2 extra (Captain's Challenge)</p>
       <div class="flex flex-wrap gap-2">${[...new Set(S.customHard.map(q => q.options[0]))].map(w => `<span class="chip" style="border-color:#f59e0b66;color:#fcd34d">${esc(w)}</span>`).join("")}</div>` : ""}
-    </div>` : "") + savedOn().map(t => {
-    const { core, hard } = savedQuestions(t);
+    </div>` : "") + cls.map(t => {
+    const { core, hard } = classQuestions(t);
     const words = list => [...new Set(list.map(q => q.options[0]))];
     return `<div class="space-y-2">
       <h4 class="text-lg md:text-2xl font-black text-white border-b border-slate-700 pb-1">${esc(t.emoji)} ${esc(t.name)}</h4>
@@ -2119,7 +2208,7 @@ document.addEventListener("keydown", e => {
 /* ================================================================== INIT */
 loadWordAudio();
 try { speechSynthesis.onvoiceschanged = () => { loadVoices(); renderFormats(); renderVoicePicker(); }; loadVoices(); } catch (e) {}
-loadSavedTopics();
+S.topics = TOPICS.map(t => t.id).filter(id => !readOff().includes(id));
 buildTeams();
 renderTeamCount();
 renderTeamNames();
@@ -2129,9 +2218,10 @@ renderFormats();
 renderVoicePicker();
 renderChallenge();
 renderCustomMode();
-renderSavedTopics();
+renderTeacher();
 setRounds(8);
 updatePool();
+loadClassTopics();
 </script>
 </body>
 </html>
