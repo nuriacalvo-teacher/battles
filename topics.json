@@ -1,3 +1,11 @@
 {
-  "topics": []
+  "topics": [
+    {
+      "id": "class-fashion",
+      "name": "Fashion",
+      "emoji": "📝",
+      "text": "brand = the name given to a product by the company that makes it\nclothing = clothes or garments in general\ncompliment = a remark that shows admiration or approval\nframes = the plastic or metal structure holding lenses in glasses\nglamorous = attractive, elegant and exciting\nhoodie = a warm casual sweatshirt with a hood\nlayer = an extra piece or level of clothing worn over another\nrange = a variety or selection of different products\nsleeve = the part of a garment that covers the arm\nstylish = fashionable, attractive and elegant\nhandbag = a small bag used for carrying personal items like money and keys\njumper = a warm knitted piece of clothing worn on the upper body\nraincoat = a waterproof coat worn to protect you from rain\n\nThe shop will ______ your order directly to your house. = deliver\nHe wore a ______ white shirt without any pattern or logos. = plain\nCheck the ______ to see how much the jacket costs. = price tag\nShe was wearing a pair of ______ jeans with holes at the knees. = ripped\nShe wore a ______ top because it was very hot outside. = sleeveless\nThat dark green coat really ______ you. = suit\nCan I ______ my blue scarf for your red one? = swap\nPull up the ______ on your jacket so you don't get cold. = zip\nHe tightened his leather ______. = belt\nMake sure you wear warm ______. = boots\nDon't forget your ______ because it's freezing outside. = gloves\nPut on your ______ before you go outside. = jacket\nWrap a warm wool ______ around your neck. = scarf\nOpen your ______ so you don't get wet in the rain. = umbrella\n\ndress\nglasses\nhat\njeans\nshirt\nshoes\nshorts\nskirt\nsocks\nsunglasses\nsweater\ntie\ntights\ntracksuit\ntrainers\ntrousers\nT-shirt\nwallet\nwatch"
+    }
+  ]
 }
+
