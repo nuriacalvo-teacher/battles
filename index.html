@@ -2223,5 +2223,184 @@ setRounds(8);
 updatePool();
 loadClassTopics();
 </script>
+<script>
+/* =====================================================================
+   ADD-ON · Machine opponent + question memory (no repeats)
+   Paste just before </body>. To undo it, delete this whole block.
+   ===================================================================== */
+
+/* ---- CSS + contenedor del selector de máquina ---- */
+(function () {
+  const st = document.createElement("style");
+  st.textContent = ".bot-turn #optionsGrid,.bot-turn #gapArea,.bot-turn #scrambleArea{pointer-events:none}";
+  document.head.appendChild(st);
+  const box = document.createElement("div");
+  box.id = "botBox";
+  box.className = "border-t border-slate-800 pt-5 space-y-3";
+  $("teamNameList").after(box);
+})();
+
+/* ---- Máquina: ajustes ---- */
+S.bot = { on: false, level: 1 };
+S.botTurn = false;
+S.botTimer = null;
+
+const BOT_LEVELS = [
+  { name: "Easy",   emoji: "🐢", from: .55, to: .85, sub: "answers late" },
+  { name: "Normal", emoji: "🤖", from: .40, to: .60, sub: "answers mid-time" },
+  { name: "Hard",   emoji: "🐇", from: .08, to: .25, sub: "answers at once" }
+];
+function isBotIdx(i) { return S.bot.on && i === S.teamCount - 1; }
+
+function renderBot() {
+  const b = S.bot;
+  $("botBox").innerHTML = `
+    <button onclick="setBot(${!b.on})" class="pick ${b.on ? "on" : ""} w-full py-3 px-4 flex items-center gap-3 text-left">
+      <span class="text-3xl">🤖</span>
+      <span class="flex-grow">
+        <span class="block font-black text-base md:text-lg ${b.on ? "text-emerald-400" : "text-slate-200"}">Play against the machine ${b.on ? "✓" : ""}</span>
+        <span class="block text-xs md:text-sm font-bold text-slate-500">The last team is the machine. It always answers correctly.</span>
+      </span>
+    </button>` + (b.on ? `<div class="grid grid-cols-3 gap-3">${BOT_LEVELS.map((l, i) => `
+      <button onclick="setBotLevel(${i})" class="pick ${b.level === i ? "on" : ""} py-3 px-2 text-center">
+        <div class="text-2xl">${l.emoji}</div>
+        <div class="font-black text-sm md:text-base ${b.level === i ? "text-emerald-400" : "text-slate-200"}">${l.name}</div>
+        <div class="text-[11px] font-bold text-slate-500">${l.sub}</div>
+      </button>`).join("")}</div>` : "");
+}
+function setBot(on) { S.bot.on = on; buildTeams(); renderTeamNames(); renderBot(); updatePool(); sfx.click(); }
+function setBotLevel(i) { S.bot.level = i; renderBot(); sfx.click(); }
+
+function botAnswer() {
+  if (S.answered) return;
+  const q = S.queue[S.index];
+  if (q.format === "mcq") answerMCQ(q.answer);
+  else if (isTyped(q.format)) { S.gapTyped = q.correct.toUpperCase(); drawGap(); checkGap(); }
+  else {
+    S.scrambleSlots = q.correct.toUpperCase().split("");
+    drawSlots();
+    document.querySelectorAll("#scrambleTiles .tile").forEach(t => t.classList.add("used"));
+    checkScramble();
+  }
+}
+
+/* ---- Equipos: el último es la máquina ---- */
+buildTeams = function () {
+  const old = S.teams.slice();
+  S.teams = [];
+  for (let i = 0; i < S.teamCount; i++) {
+    const p = TEAM_PRESETS[i], o = old[i], bot = isBotIdx(i);
+    const keep = o && !!o.bot === bot;
+    S.teams.push({
+      name: keep ? o.name : bot ? "The Machine" : p.name,
+      emoji: keep ? o.emoji : bot ? "🤖" : p.emoji,
+      color: p.color, bot,
+      score: 0, correct: 0, answered: 0, streak: 0, best: 0, challenges: 0, fastest: 0
+    });
+  }
+};
+
+/* ---- Turno de la máquina ---- */
+const _showTurn = showTurn;
+showTurn = function () {
+  _showTurn();
+  const team = S.teams[curTeamIdx()];
+  if (team.bot) $("turnPlayerHint").innerHTML = "The machine is about to answer — watch how it's done! 🤖";
+};
+
+const _beginQuestion = beginQuestion;
+beginQuestion = function () {
+  const duplicate = S.started === S.index;      // countdown + skip button can both fire
+  _beginQuestion();
+  if (duplicate) return;
+  const team = S.teams[curTeamIdx()];
+  S.botTurn = !!team.bot;
+  $("questionCard").classList.toggle("bot-turn", S.botTurn);
+  clearTimeout(S.botTimer);
+  if (S.botTurn) {
+    $("qTeamTurn").innerHTML += " · 🤖 thinking…";
+    const L = BOT_LEVELS[S.bot.level];
+    const ms = LEVELS[S.level].secs * 1000 * (L.from + Math.random() * (L.to - L.from));
+    S.botTimer = setTimeout(botAnswer, ms);
+  }
+};
+
+const _stopTimer = stopTimer;
+stopTimer = function () { clearTimeout(S.botTimer); _stopTimer(); };
+
+/* mientras juega la máquina, el teclado de los alumnos no hace nada */
+document.addEventListener("keydown", e => {
+  if (S.botTurn && !S.answered && $("screenQuestion").classList.contains("active")) {
+    e.preventDefault(); e.stopImmediatePropagation();
+  }
+}, true);
+
+/* ---- Memoria de preguntas jugadas (en este ordenador) ---- */
+const SEEN_KEY = "vocabBattle.seen";
+const qKey = q => q.prompt + "||" + q.options[0];
+function readSeen() { try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || "[]")); } catch (e) { return new Set(); } }
+function saveSeen(s) { try { localStorage.setItem(SEEN_KEY, JSON.stringify([...s])); } catch (e) {} }
+function resetSeen() { try { localStorage.removeItem(SEEN_KEY); } catch (e) {} updatePool(); sfx.click(); }
+
+/* elige n preguntas al azar, primero las que aún no se han jugado;
+   si no quedan suficientes, empieza un ciclo nuevo */
+function drawFresh(pool, n, seen) {
+  if (n <= 0) return [];
+  const sh = shuffle(pool);
+  const fresh = sh.filter(q => !seen.has(qKey(q)));
+  if (fresh.length >= n) return fresh.slice(0, n);
+  pool.forEach(q => seen.delete(qKey(q)));
+  const rest = sh.filter(q => !fresh.includes(q));
+  return shuffle(fresh.concat(rest.slice(0, n - fresh.length)));
+}
+
+buildQueue = function () {
+  const need = S.rounds * S.teamCount;
+  const hardAll = hardPool(), coreAll = corePool();
+  const chRounds = challengeRounds();
+  let nHard = Math.min(chRounds.length, hardAll.length);
+  if (need - nHard > coreAll.length) nHard = Math.min(hardAll.length, need - coreAll.length);
+  const seen = readSeen();
+  const hardSel = drawFresh(hardAll, nHard, seen);
+  const coreSel = drawFresh(coreAll, need - nHard, seen);
+  hardSel.concat(coreSel).forEach(q => seen.add(qKey(q)));
+  saveSeen(seen);
+  const queue = [];
+  let hi = 0, ci = 0, k = 0;
+  for (let r = 0; r < S.rounds; r++) {
+    let slot = -1;
+    if (chRounds.includes(r) && hi < hardSel.length) { slot = (k + S.challengeOffset) % S.teamCount; k++; }
+    for (let t = 0; t < S.teamCount; t++) {
+      let item, isHard = false;
+      if (t === slot && hi < hardSel.length) { item = hardSel[hi++]; isHard = true; }
+      else if (ci < coreSel.length) item = coreSel[ci++];
+      else if (hi < hardSel.length) { item = hardSel[hi++]; isHard = true; }
+      else break;
+      queue.push(prepareQuestion(item, isHard));
+    }
+  }
+  return queue;
+};
+
+/* ---- Indicador de preguntas nuevas en la pantalla de inicio ---- */
+const _updatePool = updatePool;
+updatePool = function () {
+  _updatePool();
+  const seen = readSeen();
+  const fresh = corePool().concat(hardPool()).filter(q => !seen.has(qKey(q))).length;
+  const box = $("poolStatus");
+  box.innerHTML = box.innerHTML.replace(
+    "No question is ever repeated and the order is reshuffled every game.",
+    fresh + ' not played yet on this computer: none repeats until all have been used. ' +
+    '<button onclick="resetSeen()" class="chip" style="padding:2px 12px">Reset memory</button>'
+  );
+};
+
+/* ---- Arranque ---- */
+renderBot();
+buildTeams();
+renderTeamNames();
+updatePool();
+</script>
 </body>
 </html>
