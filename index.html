@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+window.addEventListener("error", e => alert("ERROR: " + e.message + " (línea " + e.lineno + ")"));
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VOCAB BATTLE | Team Quiz Arena · 2–4 teams · English vocabulary</title>
@@ -2401,6 +2404,7 @@ renderBot();
 buildTeams();
 renderTeamNames();
 updatePool();
+document.title = "✓ ADDON CARGADO";
 </script>
 </body>
 </html>
