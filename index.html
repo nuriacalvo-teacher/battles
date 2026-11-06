@@ -2000,7 +2000,7 @@ function resolve(ok) {
     team.score += gained;
     team.fastest = Math.max(team.fastest || 0, speed);
     sfx.correct();
-    confetti([team.color, "#ffffff", q.hard ? "#fbbf24" : "#34d399", "#34d399"], q.hard ? 160 : 110);
+    // confetti([team.color, "#ffffff", q.hard ? "#fbbf24" : "#34d399", "#34d399"], q.hard ? 160 : 110);
     floatPoints("+" + gained, q.hard ? "#fbbf24" : team.color);
     feedback("ok", q, { gained, speed, fBonus, sBonus, team });
   } else {
